@@ -41,3 +41,91 @@ The goal is simple: **never lose knowledge again**.
 - Redis for caching
 - Local file storage or cloud storage (AWS S3 / GCS)
 
+🛠️ Development Roadmap
+Phase 1 — MVP
+
+User authentication
+
+Document upload and viewing
+
+Basic search
+
+File storage integration
+
+Phase 2 — Enhanced Features
+
+Advanced search and filters
+
+Tagging system
+
+Document versioning
+
+User roles
+
+Phase 3 — Advanced Features
+
+Collaborative editing
+
+Export tools
+
+Analytics dashboard
+
+API integrations
+
+🔐 Security Considerations
+
+Input validation and sanitization
+
+File type and size restrictions
+
+Rate limiting
+
+Secure authentication with JWT or OAuth
+
+Proper access control enforcement
+
+⚡ Performance & Scalability
+
+Indexed database queries
+
+Redis caching for frequent access
+
+Pagination for large datasets
+
+CDN support for static assets
+
+Architecture designed to support future microservices
+
+🧪 Testing
+
+Unit tests for backend logic
+
+Integration tests for API endpoints
+
+Frontend component testing
+
+Security and performance testing before deployment
+
+📦 Installation (Development)
+```bash
+# Clone repository
+git clone https://github.com/yourusername/projectname.git
+cd projectname
+
+# Backend setup
+npm install        # or pip install -r requirements.txt
+npm run dev        # or uvicorn main:app --reload
+
+# Frontend setup
+cd frontend
+npm install
+npm run dev
+```
+📄 License
+
+This project is licensed under the MIT License.
+
+✨ Author
+
+Built by Jamie
+Information Science / Software Engineering
