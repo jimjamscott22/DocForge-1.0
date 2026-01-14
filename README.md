@@ -91,20 +91,53 @@ The goal is simple: **never lose knowledge again**.
 
 ## 📦 Installation (Development)
 
-```bash
-# Clone repository
-git clone https://github.com/yourusername/projectname.git
-cd projectname
+### Phase 1 MVP Setup
 
-# Backend setup
-npm install
-npm run dev
-# or
-pip install -r requirements.txt
-uvicorn main:app --reload
+1. **Clone and navigate to the web directory**
+   ```bash
+   git clone https://github.com/yourusername/DocForge-1.0.git
+   cd DocForge-1.0/web
+   ```
 
-# Frontend setup
-cd frontend
-npm install
-npm run dev
-```
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Configure Supabase**
+   - Create a new project at [supabase.com](https://supabase.com)
+   - Copy `env.example` to `.env.local`
+   - Add your Supabase credentials:
+     ```env
+     NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+     NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+     SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+     ```
+
+4. **Enable OAuth providers in Supabase**
+   - Go to Authentication > Providers in your Supabase dashboard
+   - Enable Google and/or GitHub OAuth
+   - Add redirect URL: `http://localhost:3000/auth/callback`
+   - For production, add your production URL callback
+
+5. **Run database migrations**
+   - Open Supabase SQL Editor
+   - Copy and paste the contents of `supabase/schema.sql`
+   - Execute the SQL to create tables, indexes, and RLS policies
+
+6. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+   
+7. **Open the app**
+   - Navigate to [http://localhost:3000](http://localhost:3000)
+   - Sign in with Google or GitHub
+   - Upload documents and test search functionality
+
+### Important Notes for Phase 1
+
+- **Local Storage**: Files are saved to `web/public/uploads/` for development. This folder is created automatically.
+- **File Limits**: Maximum 10MB per file. Allowed types: PDF, TXT, MD, DOC, DOCX, PNG, JPG, JPEG, GIF.
+- **Row-Level Security**: Documents are scoped to the authenticated user via Supabase RLS policies.
+- **Production**: For production deployment, replace local file storage with Supabase Storage or S3.
