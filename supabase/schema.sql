@@ -38,6 +38,7 @@ create table if not exists public.documents (
   framework text,
   version integer not null default 1,
   storage_path text not null,
+  file_size_bytes bigint not null default 0,
   created_by uuid not null references auth.users (id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -45,6 +46,7 @@ create table if not exists public.documents (
 create index if not exists documents_title_idx on public.documents using gin (to_tsvector('simple', coalesce(title, '')));
 create index if not exists documents_language_idx on public.documents (language);
 create index if not exists documents_created_at_idx on public.documents (created_at);
+create index if not exists documents_created_by_idx on public.documents (created_by);
 create or replace function public.handle_documents_updated_at() returns trigger as $$ begin new.updated_at = now();
 return new;
 end;
@@ -125,20 +127,34 @@ do $$ begin if not exists (
 ) then create policy "tags_admin_all" on public.tags for all using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
 end if;
 end $$;
--- documents policies
-do $$ begin if not exists (
+-- documents policies (restrict to owner, allow admin on write)
+do $$ begin if exists (
   select 1
   from pg_policies
   where polname = 'documents_select_authenticated'
-) then create policy "documents_select_authenticated" on public.documents for
-select using (auth.uid() is not null);
+) then drop policy "documents_select_authenticated" on public.documents;
+end if;
+end $$;
+do $$ begin if exists (
+  select 1
+  from pg_policies
+  where polname = 'documents_insert_creator'
+) then drop policy "documents_insert_creator" on public.documents;
 end if;
 end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'documents_insert_creator'
-) then create policy "documents_insert_creator" on public.documents for
+  where polname = 'documents_select_owner'
+) then create policy "documents_select_owner" on public.documents for
+select using (auth.uid() = created_by);
+end if;
+end $$;
+do $$ begin if not exists (
+  select 1
+  from pg_policies
+  where polname = 'documents_insert_owner'
+) then create policy "documents_insert_owner" on public.documents for
 insert with check (auth.uid() = created_by);
 end if;
 end $$;
