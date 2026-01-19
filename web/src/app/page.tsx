@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabaseClient";
+import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import AuthButtons from "@/components/AuthButtons";
 import UploadForm from "@/components/UploadForm";
 
@@ -25,7 +25,7 @@ const formatBytes = (bytes: number | null) => {
 };
 
 async function getData(search: string) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
     error: sessionError,
@@ -49,13 +49,13 @@ async function getData(search: string) {
     query = query.ilike("title", `%${search}%`);
   }
 
-  const { data: documents = [], error } = await query;
+const { data: documents = [], error } = await query;
 
   if (error) {
     console.error("Failed to load documents", error);
   }
 
-  return { session, documents };
+  return { session, documents: documents || [] };
 }
 
 export default async function Home({ searchParams }: PageProps) {
@@ -165,7 +165,7 @@ export default async function Home({ searchParams }: PageProps) {
                   </form>
                 </div>
 
-                {documents.length === 0 ? (
+                {documents && documents.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-zinc-200 bg-zinc-50 p-6 text-sm text-zinc-600">
                     No documents yet. Upload your first file to get started.
                   </div>
@@ -181,7 +181,7 @@ export default async function Home({ searchParams }: PageProps) {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-200 bg-white">
-                        {documents.map((doc) => (
+                        {documents?.map((doc) => (
                           <tr key={doc.id} className="hover:bg-zinc-50">
                             <td className="px-4 py-3 font-medium text-zinc-900">{doc.title}</td>
                             <td className="px-4 py-3 text-zinc-600">{formatBytes(doc.file_size_bytes)}</td>
