@@ -58,20 +58,43 @@ export default function UploadForm() {
         }
       };
 
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          setStatus("success");
-          showSuccess("Document uploaded successfully!");
-          form.reset();
-          router.refresh();
-          setTimeout(() => setStatus("idle"), 3000);
-        } else {
-          throw new Error(xhr.responseText || "Upload failed");
+      xhr.onload = async () => {
+        try {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setStatus("success");
+            showSuccess("Document uploaded successfully!");
+            form.reset();
+            router.refresh();
+            setTimeout(() => setStatus("idle"), 3000);
+            return;
+          }
+
+          const response = new Response(xhr.responseText, {
+            status: xhr.status,
+            headers: {
+              "Content-Type": xhr.getResponseHeader("Content-Type") ?? "application/json",
+            },
+          });
+          const appError = await parseApiError(response);
+          setStatus("error");
+          setError(appError.userMessage);
+          showError(appError.userMessage);
+          handleError(appError, "UploadForm");
+        } catch (err) {
+          setStatus("error");
+          const errorMessage = err instanceof Error ? err.message : "Upload failed";
+          setError(errorMessage);
+          showError(errorMessage);
+          handleError(err, "UploadForm");
         }
       };
 
       xhr.onerror = () => {
-        throw new Error("Network error occurred during upload");
+        const errorMessage = "Network error occurred during upload";
+        setStatus("error");
+        setError(errorMessage);
+        showError(errorMessage);
+        handleError(new Error(errorMessage), "UploadForm");
       };
 
       xhr.open("POST", "/api/upload");
@@ -80,6 +103,7 @@ export default function UploadForm() {
       setStatus("error");
       const errorMessage = err instanceof Error ? err.message : "Upload failed";
       setError(errorMessage);
+      showError(errorMessage);
       handleError(err, "UploadForm");
     }
   };
