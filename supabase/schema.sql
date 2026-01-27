@@ -74,7 +74,7 @@ alter table public.document_tags enable row level security;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'profiles_select_self'
+  where policyname = 'profiles_select_self'
 ) then create policy "profiles_select_self" on public.profiles for
 select using (auth.uid() = id);
 end if;
@@ -82,7 +82,7 @@ end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'profiles_insert_self'
+  where policyname = 'profiles_insert_self'
 ) then create policy "profiles_insert_self" on public.profiles for
 insert with check (auth.uid() = id);
 end if;
@@ -90,7 +90,7 @@ end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'profiles_update_self'
+  where policyname = 'profiles_update_self'
 ) then create policy "profiles_update_self" on public.profiles for
 update using (auth.uid() = id) with check (auth.uid() = id);
 end if;
@@ -99,7 +99,7 @@ end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'categories_select_authenticated'
+  where policyname = 'categories_select_authenticated'
 ) then create policy "categories_select_authenticated" on public.categories for
 select using (auth.uid() is not null);
 end if;
@@ -107,7 +107,7 @@ end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'categories_admin_all'
+  where policyname = 'categories_admin_all'
 ) then create policy "categories_admin_all" on public.categories for all using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
 end if;
 end $$;
@@ -115,7 +115,7 @@ end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'tags_select_authenticated'
+  where policyname = 'tags_select_authenticated'
 ) then create policy "tags_select_authenticated" on public.tags for
 select using (auth.uid() is not null);
 end if;
@@ -123,7 +123,7 @@ end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'tags_admin_all'
+  where policyname = 'tags_admin_all'
 ) then create policy "tags_admin_all" on public.tags for all using (public.is_admin(auth.uid())) with check (public.is_admin(auth.uid()));
 end if;
 end $$;
@@ -131,21 +131,21 @@ end $$;
 do $$ begin if exists (
   select 1
   from pg_policies
-  where polname = 'documents_select_authenticated'
+  where policyname = 'documents_select_authenticated'
 ) then drop policy "documents_select_authenticated" on public.documents;
 end if;
 end $$;
 do $$ begin if exists (
   select 1
   from pg_policies
-  where polname = 'documents_insert_creator'
+  where policyname = 'documents_insert_creator'
 ) then drop policy "documents_insert_creator" on public.documents;
 end if;
 end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'documents_select_owner'
+  where policyname = 'documents_select_owner'
 ) then create policy "documents_select_owner" on public.documents for
 select using (auth.uid() = created_by);
 end if;
@@ -153,7 +153,7 @@ end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'documents_insert_owner'
+  where policyname = 'documents_insert_owner'
 ) then create policy "documents_insert_owner" on public.documents for
 insert with check (auth.uid() = created_by);
 end if;
@@ -161,7 +161,7 @@ end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'documents_update_owner_or_admin'
+  where policyname = 'documents_update_owner_or_admin'
 ) then create policy "documents_update_owner_or_admin" on public.documents for
 update using (
     auth.uid() = created_by
@@ -175,7 +175,7 @@ end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'documents_delete_owner_or_admin'
+  where policyname = 'documents_delete_owner_or_admin'
 ) then create policy "documents_delete_owner_or_admin" on public.documents for delete using (
   auth.uid() = created_by
   or public.is_admin(auth.uid())
@@ -186,7 +186,7 @@ end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'document_tags_select_authenticated'
+  where policyname = 'document_tags_select_authenticated'
 ) then create policy "document_tags_select_authenticated" on public.document_tags for
 select using (auth.uid() is not null);
 end if;
@@ -194,7 +194,7 @@ end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'document_tags_insert_owner_or_admin'
+  where policyname = 'document_tags_insert_owner_or_admin'
 ) then create policy "document_tags_insert_owner_or_admin" on public.document_tags for
 insert with check (
     exists (
@@ -212,7 +212,7 @@ end $$;
 do $$ begin if not exists (
   select 1
   from pg_policies
-  where polname = 'document_tags_delete_owner_or_admin'
+  where policyname = 'document_tags_delete_owner_or_admin'
 ) then create policy "document_tags_delete_owner_or_admin" on public.document_tags for delete using (
   exists (
     select 1
