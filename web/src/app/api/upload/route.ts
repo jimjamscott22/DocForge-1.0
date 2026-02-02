@@ -1,6 +1,5 @@
-import fs from "fs/promises";
-import path from "path";
 import crypto from "crypto";
+import path from "path";
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import {
@@ -14,6 +13,7 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const BUCKET_NAME = "DocForgeVault";
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -25,12 +25,6 @@ const ALLOWED_TYPES = [
   "image/jpeg",
   "image/gif",
 ];
-
-interface ErrorResponse {
-  error: string;
-  code?: ErrorCode;
-  details?: Record<string, unknown>;
-}
 
 function errorResponse(error: AppError): NextResponse {
   return NextResponse.json(
@@ -115,22 +109,37 @@ export async function POST(request: Request) {
       );
     }
 
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await fs.mkdir(uploadDir, { recursive: true });
-
+    // Build a unique path scoped to the user: <user_id>/<timestamp>-<uuid>-<filename>
     const safeName = path.basename(file.name).replace(/\s+/g, "-");
     const uniqueName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
-    const storagePath = path.join("uploads", uniqueName);
-    const fullPath = path.join(uploadDir, uniqueName);
+    const storagePath = `${session.user.id}/${uniqueName}`;
 
+    // Upload file to Supabase Storage
     const buffer = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(fullPath, buffer);
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(storagePath, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
 
+    if (uploadError) {
+      console.error("Failed to upload to Supabase Storage", uploadError);
+      return errorResponse(
+        new AppError({
+          code: ErrorCode.STORAGE_ERROR,
+          severity: ErrorSeverity.HIGH,
+          userMessage: "Could not upload file to storage. Please try again.",
+        })
+      );
+    }
+
+    // Save metadata to database
     const { data, error } = await supabase
       .from("documents")
       .insert({
         title: title.trim(),
-        storage_path: storagePath.replace(/\\/g, "/"),
+        storage_path: uploadData.path,
         file_size_bytes: file.size,
         created_by: session.user.id,
       })
@@ -138,6 +147,8 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
+      // Rollback: remove the uploaded file if DB insert fails
+      await supabase.storage.from(BUCKET_NAME).remove([uploadData.path]);
       console.error("Failed to insert document metadata", error);
       return errorResponse(
         new ServerError("Could not save document metadata. Please try again.")

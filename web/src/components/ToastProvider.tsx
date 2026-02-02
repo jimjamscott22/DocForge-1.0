@@ -97,17 +97,17 @@ const ToastContainer = () => {
   if (toasts.length === 0) return null;
 
   const typeStyles = {
-    success: "bg-green-50 border-green-200 text-green-800",
-    error: "bg-red-50 border-red-200 text-red-800",
-    info: "bg-blue-50 border-blue-200 text-blue-800",
-    warning: "bg-amber-50 border-amber-200 text-amber-800",
+    success: "bg-emerald-950/80 border-emerald-700/50 text-emerald-200",
+    error: "bg-red-950/80 border-red-700/50 text-red-200",
+    info: "bg-blue-950/80 border-blue-700/50 text-blue-200",
+    warning: "bg-amber-950/80 border-amber-700/50 text-amber-200",
   };
 
   const typeIcons = {
-    success: "✓",
-    error: "✕",
-    info: "ℹ",
-    warning: "⚠",
+    success: "\u2713",
+    error: "\u2715",
+    info: "\u2139",
+    warning: "\u26A0",
   };
 
   return (
@@ -115,7 +115,7 @@ const ToastContainer = () => {
       {toasts.map((toast) => (
         <div
           key={toast.id}
-          className={`rounded-lg border px-4 py-3 shadow-lg ${typeStyles[toast.type]}`}
+          className={`rounded-lg border px-4 py-3 shadow-lg backdrop-blur-sm ${typeStyles[toast.type]}`}
           role="alert"
           aria-live="polite"
         >
@@ -128,7 +128,7 @@ const ToastContainer = () => {
             </div>
             <button
               onClick={() => removeToast(toast.id)}
-              className="flex-shrink-0 rounded hover:bg-black/5 p-1 transition"
+              className="flex-shrink-0 rounded hover:bg-white/10 p-1 transition"
               aria-label="Dismiss"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

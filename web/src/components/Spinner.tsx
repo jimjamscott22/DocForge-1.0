@@ -16,7 +16,7 @@ const sizeClasses = {
 export function Spinner({ size = "md", className = "" }: SpinnerProps) {
   return (
     <div
-      className={`inline-block animate-spin rounded-full border-current border-t-transparent text-indigo-600 ${sizeClasses[size]} ${className}`}
+      className={`inline-block animate-spin rounded-full border-current border-t-transparent text-forge-400 ${sizeClasses[size]} ${className}`}
       role="status"
       aria-label="Loading"
     >
@@ -31,10 +31,10 @@ export function LoadingOverlay({
   message?: string;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/80 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-4">
         <Spinner size="lg" />
-        <p className="text-sm font-medium text-zinc-600">{message}</p>
+        <p className="text-sm font-medium text-stone-400">{message}</p>
       </div>
     </div>
   );
@@ -50,7 +50,7 @@ export function ButtonSpinner({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
 
 export function InlineLoader({ text = "Loading..." }: { text?: string }) {
   return (
-    <div className="flex items-center gap-2 text-zinc-500">
+    <div className="flex items-center gap-2 text-stone-400">
       <Spinner size="sm" />
       <span className="text-sm">{text}</span>
     </div>

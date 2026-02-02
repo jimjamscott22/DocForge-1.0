@@ -226,3 +226,103 @@ do $$ begin if not exists (
 );
 end if;
 end $$;
+-- ============================================================
+-- Storage: DocForgeVault bucket and RLS policies
+-- ============================================================
+insert into storage.buckets (id, name, public)
+values ('DocForgeVault', 'DocForgeVault', true)
+on conflict (id) do nothing;
+-- Allow authenticated users to upload files to their own folder
+do $$ begin if not exists (
+  select 1 from pg_policies
+  where policyname = 'users_insert_own_folder'
+    and schemaname = 'storage'
+    and tablename = 'objects'
+) then create policy "users_insert_own_folder"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'DocForgeVault'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+end if;
+end $$;
+-- Allow users to read their own files
+do $$ begin if not exists (
+  select 1 from pg_policies
+  where policyname = 'users_select_own_files'
+    and schemaname = 'storage'
+    and tablename = 'objects'
+) then create policy "users_select_own_files"
+on storage.objects for select
+to authenticated
+using (
+  bucket_id = 'DocForgeVault'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+end if;
+end $$;
+-- Allow admins to read all files
+do $$ begin if not exists (
+  select 1 from pg_policies
+  where policyname = 'admins_select_all_files'
+    and schemaname = 'storage'
+    and tablename = 'objects'
+) then create policy "admins_select_all_files"
+on storage.objects for select
+to authenticated
+using (
+  bucket_id = 'DocForgeVault'
+  and public.is_admin(auth.uid())
+);
+end if;
+end $$;
+-- Allow users to update their own files
+do $$ begin if not exists (
+  select 1 from pg_policies
+  where policyname = 'users_update_own_files'
+    and schemaname = 'storage'
+    and tablename = 'objects'
+) then create policy "users_update_own_files"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'DocForgeVault'
+  and (storage.foldername(name))[1] = auth.uid()::text
+)
+with check (
+  bucket_id = 'DocForgeVault'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+end if;
+end $$;
+-- Allow users to delete their own files
+do $$ begin if not exists (
+  select 1 from pg_policies
+  where policyname = 'users_delete_own_files'
+    and schemaname = 'storage'
+    and tablename = 'objects'
+) then create policy "users_delete_own_files"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'DocForgeVault'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+end if;
+end $$;
+-- Allow admins to delete any file
+do $$ begin if not exists (
+  select 1 from pg_policies
+  where policyname = 'admins_delete_all_files'
+    and schemaname = 'storage'
+    and tablename = 'objects'
+) then create policy "admins_delete_all_files"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'DocForgeVault'
+  and public.is_admin(auth.uid())
+);
+end if;
+end $$;
