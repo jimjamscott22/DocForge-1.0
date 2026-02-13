@@ -40,8 +40,8 @@ export default function UploadForm() {
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      setError("File must be 10MB or smaller.");
+    if (file.size > 50 * 1024 * 1024) {
+      setError("File must be 50MB or smaller.");
       return;
     }
 
@@ -110,8 +110,8 @@ export default function UploadForm() {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.size > 10 * 1024 * 1024) {
-      setError("File must be 10MB or smaller.");
+    if (file && file.size > 50 * 1024 * 1024) {
+      setError("File must be 50MB or smaller.");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -155,7 +155,7 @@ export default function UploadForm() {
           disabled={isUploading}
           className="w-full rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-2 text-sm text-stone-300 transition file:mr-3 file:rounded-md file:border-0 file:bg-forge-600 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white file:transition file:hover:bg-forge-500 disabled:opacity-50"
         />
-        <p className="text-xs text-stone-600">Max 10 MB &middot; Stored in Supabase Storage</p>
+        <p className="text-xs text-stone-600">Max 50 MB &middot; Stored in Supabase Storage</p>
       </div>
 
       {isUploading && progress && (

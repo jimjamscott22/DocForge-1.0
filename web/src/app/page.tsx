@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import AuthButtons from "@/components/AuthButtons";
 import UploadForm from "@/components/UploadForm";
 import ViewDocumentButton from "@/components/ViewDocumentButton";
+import ReferenceLinksSidebar from "@/components/ReferenceLinksSidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -221,7 +222,7 @@ export default async function Home({ searchParams }: PageProps) {
                   </div>
                   <div>
                     <h2 className="font-display text-lg text-stone-50">Upload</h2>
-                    <p className="text-xs text-stone-500">PDF, images, text &middot; up to 10 MB</p>
+                    <p className="text-xs text-stone-500">PDF, images, text &middot; up to 50 MB</p>
                   </div>
                 </div>
                 <UploadForm />
@@ -241,6 +242,13 @@ export default async function Home({ searchParams }: PageProps) {
                   Files are stored in Supabase Storage with row-level security.
                   Each document is tracked in the database for listing and search.
                 </p>
+              </div>
+
+              <div
+                className="animate-fade-up mt-4"
+                style={{ animationDelay: "0.3s" }}
+              >
+                <ReferenceLinksSidebar />
               </div>
             </section>
 
