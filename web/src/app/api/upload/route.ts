@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const BUCKET_NAME = "DocForgeVault";
-const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
 const ALLOWED_TYPES = [
   "application/pdf",
   "text/plain",
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
         new AppError({
           code: ErrorCode.FILE_TOO_LARGE,
           severity: ErrorSeverity.MEDIUM,
-          userMessage: "File exceeds the 10MB size limit",
+          userMessage: "File exceeds the 50MB size limit",
           details: { maxSize: MAX_FILE_SIZE_BYTES, actualSize: file.size },
         })
       );
