@@ -2,6 +2,8 @@ import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import AuthButtons from "@/components/AuthButtons";
 import UploadForm from "@/components/UploadForm";
 import ViewDocumentButton from "@/components/ViewDocumentButton";
+import DeleteDocumentButton from "@/components/DeleteDocumentButton";
+import TextPreviewModal from "@/components/TextPreviewModal";
 import ReferenceLinksSidebar from "@/components/ReferenceLinksSidebar";
 
 export const dynamic = "force-dynamic";
@@ -335,7 +337,24 @@ export default async function Home({ searchParams }: PageProps) {
                               }).format(new Date(doc.created_at))}
                             </td>
                             <td className="px-4 py-3.5 text-right">
-                              <ViewDocumentButton documentId={doc.id} />
+                              <div className="flex items-center justify-end gap-2">
+                                {["txt", "md"].includes(
+                                  doc.storage_path
+                                    .split(".")
+                                    .pop()
+                                    ?.toLowerCase() ?? ""
+                                ) && (
+                                  <TextPreviewModal
+                                    documentId={doc.id}
+                                    documentTitle={doc.title}
+                                  />
+                                )}
+                                <ViewDocumentButton documentId={doc.id} />
+                                <DeleteDocumentButton
+                                  documentId={doc.id}
+                                  documentTitle={doc.title}
+                                />
+                              </div>
                             </td>
                           </tr>
                         ))}
