@@ -1,6 +1,6 @@
 # DocForge Project Status
 
-**Last Updated**: 2026-02-16
+**Last Updated**: 2026-02-17
 **Status**: Fully Functional - Core features working, document management expanding
 
 ---
@@ -20,10 +20,12 @@
 - **Loading States**: Spinners, skeleton loaders, and upload progress indicators
 
 ### Recent Changes
+- Added markdown rendering in preview modal using `react-markdown` + `remark-gfm` (headings, lists, code blocks, tables, etc.)
+- Added bulk actions: checkbox selection, batch delete, and batch open for multiple documents
+- Extracted document table into `DocumentTable` client component with selection state
+- Added `POST /api/documents/bulk-delete` API endpoint (max 50 per request, ownership verified)
 - Added document deletion (DELETE API endpoint + confirmation dialog UI)
 - Added in-app text/markdown file preview modal with content API endpoint
-- Integrated delete and preview buttons into the document table
-- Updated project status to reflect current architecture
 
 ---
 
@@ -42,8 +44,9 @@
    - `app/page.tsx` - Main dashboard with document list, search, upload sidebar
    - `components/UploadForm.tsx` - File upload with XHR progress tracking
    - `components/ViewDocumentButton.tsx` - Open document in new tab via signed URL
+   - `components/DocumentTable.tsx` - Document list with checkbox selection and bulk actions
    - `components/DeleteDocumentButton.tsx` - Delete with confirmation dialog
-   - `components/TextPreviewModal.tsx` - In-app text/markdown preview
+   - `components/TextPreviewModal.tsx` - In-app text/markdown preview (renders `.md` with `react-markdown`)
    - `components/ToastProvider.tsx` - Toast notification system
    - `components/ErrorProvider.tsx` - Centralized error handling context
    - `components/ErrorBoundary.tsx` - React error boundary
@@ -57,6 +60,7 @@
    - `GET /api/documents/[id]/download` - Get signed download URL
    - `GET /api/documents/[id]/content` - Get text file content for in-app preview
    - `DELETE /api/documents/[id]` - Delete a document (storage + database)
+   - `POST /api/documents/bulk-delete` - Batch delete up to 50 documents
    - `GET /api/health` - Health check
 
 3. **Auth Routes** (`web/src/app/auth/`)
@@ -92,8 +96,8 @@
 
 ### Short Term
 - **Drag-and-drop upload**: Add a drop zone to the upload form for easier file uploading
-- **Markdown rendering**: Render `.md` files with formatted headings, lists, and code blocks in the preview modal (e.g. using `react-markdown`)
-- **Bulk actions**: Select multiple documents for batch deletion or download
+- ~~**Markdown rendering**: Render `.md` files with formatted headings, lists, and code blocks in the preview modal~~ ✅ Done
+- ~~**Bulk actions**: Select multiple documents for batch deletion or download~~ ✅ Done
 - **Sort and filter**: Sort the document table by name, date, size, or file type; filter by type
 - **Document tagging**: Use the existing `tags` / `document_tags` tables for organization and filtering
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface TextPreviewModalProps {
   documentId: string;
@@ -172,9 +174,17 @@ export default function TextPreviewModal({
 
           {content !== null && !loading && (
             <>
-              <pre className="whitespace-pre-wrap break-words p-5 font-mono text-sm leading-relaxed text-stone-300">
-                {content}
-              </pre>
+              {extension === "md" ? (
+                <div className="markdown-preview p-5 text-sm leading-relaxed text-stone-300">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {content}
+                  </ReactMarkdown>
+                </div>
+              ) : (
+                <pre className="whitespace-pre-wrap break-words p-5 font-mono text-sm leading-relaxed text-stone-300">
+                  {content}
+                </pre>
+              )}
               {truncated && (
                 <div className="border-t border-stone-700/40 px-5 py-3 text-center text-xs text-stone-500">
                   Preview truncated &mdash; file is larger than 512 KB. Open the
