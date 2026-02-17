@@ -1,242 +1,132 @@
 # DocForge Project Status
 
-**Last Updated**: 2026-01-30
-**Status**: ✅ Fully Functional - Core features working
+**Last Updated**: 2026-02-16
+**Status**: Fully Functional - Core features working, document management expanding
 
 ---
 
-## 🎯 Current Status
+## Current Status
 
 ### What's Working
-- ✅ **File Upload System**: Multi-file upload with progress tracking
-- ✅ **Backend API**: Express.js server with Supabase integration
-- ✅ **Database**: Supabase PostgreSQL with RLS policies
-- ✅ **Storage**: Supabase Storage for file management
-- ✅ **Admin Dashboard**: Document management interface
-- ✅ **Authentication**: Supabase Auth integration
-- ✅ **Frontend**: React application with TailwindCSS
+- **File Upload System**: Multi-file upload with real-time progress tracking and validation
+- **Document Viewing**: Open documents via signed URLs (1-hour expiry)
+- **Text File Preview**: In-app preview modal for `.txt` and `.md` files with styled monospace viewer
+- **Document Deletion**: Delete documents from the vault with confirmation dialog, removes both storage file and database record
+- **Search**: Case-insensitive document title search
+- **Authentication**: OAuth via Google and GitHub through Supabase Auth
+- **Database**: Supabase PostgreSQL with row-level security (RLS) policies
+- **Storage**: Supabase Storage bucket ("DocForgeVault") with per-user file scoping
+- **Error Handling**: Centralized error infrastructure with toast notifications, error boundaries, and structured error codes
+- **Loading States**: Spinners, skeleton loaders, and upload progress indicators
 
-### Recent Completions
-- Fixed Supabase RLS policies for document access
-- Implemented file upload with proper error handling
-- Connected frontend to backend API
-- Set up environment configuration (.env.local)
-- Configured local settings for Claude permissions
+### Recent Changes
+- Added document deletion (DELETE API endpoint + confirmation dialog UI)
+- Added in-app text/markdown file preview modal with content API endpoint
+- Integrated delete and preview buttons into the document table
+- Updated project status to reflect current architecture
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 ### Tech Stack
-- **Frontend**: React 18 + Vite + TailwindCSS
-- **Backend**: Express.js (Node.js)
-- **Database**: Supabase (PostgreSQL)
-- **Storage**: Supabase Storage (currently local uploads to `web/public/uploads/`)
-- **Authentication**: Supabase Auth
+- **Frontend**: Next.js 16 (React 19) + TypeScript + TailwindCSS v4
+- **Backend**: Next.js API routes (no separate server)
+- **Database**: Supabase (PostgreSQL) with RLS
+- **Storage**: Supabase Storage bucket "DocForgeVault"
+- **Authentication**: Supabase Auth (Google & GitHub OAuth)
 
 ### Key Components
-1. **Backend** (`server/`)
-   - `server.js` - Express server with file upload routes
-   - Port: 5000
 
-2. **Frontend** (`web/`)
-   - `src/pages/AdminDashboard.jsx` - Main admin interface
-   - File upload component with drag-and-drop
-   - Port: 5173 (Vite dev server)
+1. **Frontend** (`web/src/`)
+   - `app/page.tsx` - Main dashboard with document list, search, upload sidebar
+   - `components/UploadForm.tsx` - File upload with XHR progress tracking
+   - `components/ViewDocumentButton.tsx` - Open document in new tab via signed URL
+   - `components/DeleteDocumentButton.tsx` - Delete with confirmation dialog
+   - `components/TextPreviewModal.tsx` - In-app text/markdown preview
+   - `components/ToastProvider.tsx` - Toast notification system
+   - `components/ErrorProvider.tsx` - Centralized error handling context
+   - `components/ErrorBoundary.tsx` - React error boundary
+   - `components/Spinner.tsx` - Loading spinner variants (sm/md/lg, overlay, inline)
+   - `components/Skeleton.tsx` - Skeleton loader components
+   - `components/AuthButtons.tsx` - OAuth sign-in/sign-out buttons
+   - `components/ReferenceLinksSidebar.tsx` - Quick reference links
 
-3. **Database Schema** (`supabase/schema.sql`)
-   - `documents` table with RLS policies
-   - Storage bucket: `documents`
+2. **API Routes** (`web/src/app/api/`)
+   - `POST /api/upload` - Upload file to vault
+   - `GET /api/documents/[id]/download` - Get signed download URL
+   - `GET /api/documents/[id]/content` - Get text file content for in-app preview
+   - `DELETE /api/documents/[id]` - Delete a document (storage + database)
+   - `GET /api/health` - Health check
 
-### Current File Storage
-- Files are uploaded to: `web/public/uploads/`
-- Metadata stored in Supabase `documents` table
-- **Note**: This is local storage only, not synced across devices
+3. **Auth Routes** (`web/src/app/auth/`)
+   - `GET /auth/callback` - OAuth callback handler
+   - `POST /auth/signout` - Sign out and clear session
+
+4. **Database Schema** (`supabase/schema.sql`)
+   - `documents` table with RLS policies (owner + admin access)
+   - `document_tags` and `tags` tables for categorization
+   - Storage bucket RLS policies for per-user file access control
+
+### File Storage
+- Files stored in Supabase Storage bucket "DocForgeVault"
+- Path format: `{user_id}/{timestamp}-{uuid}-{filename}`
+- Maximum file size: 50 MB
+- Allowed types: PDF, TXT, MD, DOC, DOCX, PNG, JPG, JPEG, GIF
 
 ---
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
-- `.env.local` - Contains Supabase credentials (gitignored)
-- Backend loads environment variables for database connection
+- `.env.local` - Contains `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (gitignored)
 
 ### Important Files
 - `.claude/settings.local.json` - Claude permissions configuration
-- `.gitignore` - Updated to ignore sensitive files
-- `supabase/schema.sql` - Database schema and policies
+- `.gitignore` - Ignores sensitive files and build artifacts
+- `supabase/schema.sql` - Database schema, RLS policies, and storage bucket setup
 
 ---
 
-## 📋 Next Steps for Development
+## Potential Future Upgrades
 
-### 1. Cross-Device Storage Solutions
+### Short Term
+- **Drag-and-drop upload**: Add a drop zone to the upload form for easier file uploading
+- **Markdown rendering**: Render `.md` files with formatted headings, lists, and code blocks in the preview modal (e.g. using `react-markdown`)
+- **Bulk actions**: Select multiple documents for batch deletion or download
+- **Sort and filter**: Sort the document table by name, date, size, or file type; filter by type
+- **Document tagging**: Use the existing `tags` / `document_tags` tables for organization and filtering
 
-#### Option A: Supabase Storage (Recommended - Already Integrated)
-**Pros**:
-- Already using Supabase for database/auth
-- Built-in CDN and global distribution
-- Automatic backups
-- Simple API integration
-- Free tier: 1GB storage, 2GB bandwidth
+### Medium Term
+- **Folder organization**: Nested folder structure for grouping documents
+- **File versioning**: Track and restore previous versions of a document
+- **PDF preview**: In-app PDF viewer instead of opening in a new tab
+- **Image preview**: Thumbnail gallery and lightbox for uploaded images
+- **Document sharing**: Generate public or time-limited share links for individual documents
+- **Multi-user collaboration**: Share vaults or folders with other authenticated users
 
-**Implementation**:
-- Modify upload handler to use Supabase Storage SDK instead of local filesystem
-- Update file retrieval to use Supabase CDN URLs
-- Files automatically available across all devices
-
-**Cost**: Free tier → $0.021/GB/month after
-
----
-
-#### Option B: AWS S3 + CloudFront
-**Pros**:
-- Industry standard, highly reliable
-- Excellent cross-region replication
-- CloudFront CDN for fast global access
-- Lifecycle policies for cost optimization
-
-**Cons**:
-- More complex setup
-- Costs can add up with bandwidth
-
-**Cost**: ~$0.023/GB storage + bandwidth costs
+### Long Term
+- **Full-text search**: Index document contents for searching within file text, not just titles
+- **AI-powered features**: Document summarization, auto-tagging, content extraction
+- **OCR**: Extract text from scanned documents and images
+- **Third-party integrations**: Import from Google Drive, Dropbox, or OneDrive
+- **Mobile / PWA**: Progressive web app or native mobile client for on-the-go access
+- **Audit log**: Track document uploads, views, deletions, and shares for compliance
+- **Alternative storage backends**: Option to use S3, Cloudflare R2, or DigitalOcean Spaces instead of or alongside Supabase Storage
 
 ---
 
-#### Option C: Digital Ocean Spaces ⭐ RECOMMENDED (You have $200 credit!)
-**Pros**:
-- **You have $200 credit** - essentially free for 40 months!
-- S3-compatible API (easy migration path)
-- Built-in CDN included
-- Simple pricing: $5/month flat for 250GB + 1TB bandwidth
-- Easy integration with other DO services
-- Excellent documentation and support
-
-**Cons**:
-- After credit runs out, $5/month minimum (but very reasonable)
-
-**Cost**: $5/month (250GB + 1TB bandwidth included) - **FREE with your credit**
-
----
-
-#### Option D: Cloudflare R2
-**Pros**:
-- S3-compatible API
-- **Zero egress fees** (no bandwidth charges)
-- Excellent for high-traffic applications
-- Free tier: 10GB storage/month
-
-**Cons**:
-- Newer service (less mature than S3)
-
-**Cost**: $0.015/GB storage, $0 egress
-
----
-
-#### Option E: Self-Hosted MinIO
-**Pros**:
-- Open-source, S3-compatible
-- Full control over data
-- Can run on your own servers/NAS
-- No monthly fees (only infrastructure costs)
-
-**Cons**:
-- Must manage infrastructure yourself
-- Responsible for backups and redundancy
-- Need to handle syncing between devices manually
-
-**Cost**: Free software + your server costs
-
----
-
-#### Option F: Backblaze B2
-**Pros**:
-- Very cost-effective ($0.005/GB storage)
-- S3-compatible API
-- Good for archival and backups
-
-**Cons**:
-- Slower than S3/Cloudflare for frequent access
-- Bandwidth costs after free tier
-
-**Cost**: $0.005/GB storage, first 1GB download/day free
-
----
-
-### 2. Recommendation Matrix
-
-| Solution | Best For | Monthly Cost (100GB) | Sync Speed | Setup Complexity |
-|----------|----------|---------------------|------------|------------------|
-| **Digital Ocean Spaces** ⭐ | **You! (with $200 credit)** | **FREE** ($5 normally) | Fast | ⭐⭐ Medium |
-| **Supabase Storage** | Already using Supabase | ~$2.10 | Fast | ⭐ Easy |
-| **Cloudflare R2** | High bandwidth needs | $1.50 | Very Fast | ⭐⭐ Medium |
-| **AWS S3** | Enterprise/scalability | ~$2.30 + bandwidth | Fast | ⭐⭐⭐ Complex |
-| **MinIO** | Self-hosting enthusiasts | Hardware only | Depends on setup | ⭐⭐⭐⭐ Advanced |
-| **Backblaze B2** | Archival/backups | $0.50 | Moderate | ⭐⭐ Medium |
-
----
-
-### 3. Recommended Next Steps
-
-**Immediate (Recommended)**:
-1. **Migrate to Digital Ocean Spaces** - Use your $200 credit! S3-compatible, built-in CDN
-   - Create a Space (bucket) in Digital Ocean
-   - Install AWS SDK (`npm install @aws-sdk/client-s3`)
-   - Update backend upload handler to use DO Spaces API
-   - Configure CORS for web access
-   - Get CDN URLs for files (automatic with Spaces)
-   - 40 months of free storage with your credit!
-
-**Short Term**:
-2. **Add Document Processing**:
-   - PDF preview generation
-   - Text extraction for search
-   - Document categorization/tagging
-
-3. **Enhanced Admin Features**:
-   - Bulk upload
-   - Folder organization
-   - Search and filtering
-   - File versioning
-
-**Medium Term**:
-4. **User Management**:
-   - Multi-user support
-   - Role-based access control
-   - Sharing and permissions
-
-5. **Mobile Access**:
-   - Responsive design improvements
-   - Mobile app (React Native/PWA)
-
-**Long Term**:
-6. **Advanced Features**:
-   - AI-powered document analysis
-   - OCR for scanned documents
-   - Integration with other tools (Google Drive, Dropbox)
-   - Collaborative editing
-
----
-
-## 🐛 Known Issues
+## Known Issues
 
 - None currently identified
 
 ---
 
-## 📝 Notes
+## Quick Start
 
-- Using local file storage (`web/public/uploads/`) - files not synced across devices yet
-- Supabase RLS policies recently fixed - document access working properly
-- Test PDF uploaded successfully: `GPT5.1_Prompting_Cheatsheet.pdf`
-
----
-
-## 🚀 Quick Start Checklist for Next Session
-
-- [ ] Review this status file
-- [ ] Check if backend server is running (port 5000)
-- [ ] Check if frontend dev server is running (port 5173)
-- [ ] Verify `.env.local` exists with Supabase credentials
-- [ ] Check git status for uncommitted changes
+```bash
+cd web
+cp env.example .env.local   # Fill in Supabase URL and anon key
+npm install
+npm run dev                  # Starts on http://localhost:3000
+```
