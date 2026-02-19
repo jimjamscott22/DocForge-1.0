@@ -15,7 +15,7 @@ type DocumentRow = {
 };
 
 type PageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 async function getData(search: string) {
@@ -53,7 +53,8 @@ async function getData(search: string) {
 }
 
 export default async function Home({ searchParams }: PageProps) {
-  const search = typeof searchParams?.q === "string" ? searchParams.q : "";
+  const params = await searchParams;
+  const search = typeof params?.q === "string" ? params.q : "";
   const { session, documents } = await getData(search);
 
   const isAuthed = Boolean(session);
