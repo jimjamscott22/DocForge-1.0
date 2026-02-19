@@ -10,7 +10,8 @@
       "mcp__plugin_supabase_supabase__apply_migration",
       "Bash(npx next build)",
       "mcp__plugin_supabase_supabase__get_advisors",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }
