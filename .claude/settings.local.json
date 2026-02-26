@@ -11,7 +11,8 @@
       "Bash(npx next build)",
       "mcp__plugin_supabase_supabase__get_advisors",
       "Bash(npm install:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "mcp__claude_ai_Supabase__list_projects"
     ]
   }
 }
