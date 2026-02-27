@@ -6,6 +6,7 @@ import { useToast } from "./ToastProvider";
 import ViewDocumentButton from "./ViewDocumentButton";
 import DeleteDocumentButton from "./DeleteDocumentButton";
 import TextPreviewModal from "./TextPreviewModal";
+import PdfPreviewModal from "./PdfPreviewModal";
 
 type DocumentRow = {
   id: string;
@@ -328,17 +329,22 @@ export default function DocumentTable({
                 </td>
                 <td className="px-4 py-3.5 text-right">
                   <div className="flex items-center justify-end gap-2">
-                    {["txt", "md"].includes(
-                      doc.storage_path
-                        .split(".")
-                        .pop()
-                        ?.toLowerCase() ?? ""
-                    ) && (
-                      <TextPreviewModal
-                        documentId={doc.id}
-                        documentTitle={doc.title}
-                      />
-                    )}
+                    {(() => {
+                      const ext = doc.storage_path.split(".").pop()?.toLowerCase() ?? "";
+                      if (ext === "pdf") return (
+                        <PdfPreviewModal
+                          documentId={doc.id}
+                          documentTitle={doc.title}
+                        />
+                      );
+                      if (["txt", "md"].includes(ext)) return (
+                        <TextPreviewModal
+                          documentId={doc.id}
+                          documentTitle={doc.title}
+                        />
+                      );
+                      return null;
+                    })()}
                     <ViewDocumentButton documentId={doc.id} />
                     <DeleteDocumentButton
                       documentId={doc.id}
