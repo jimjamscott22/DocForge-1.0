@@ -12,7 +12,16 @@
       "mcp__plugin_supabase_supabase__get_advisors",
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
-      "mcp__claude_ai_Supabase__list_projects"
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__list_migrations",
+      "mcp__claude_ai_Supabase__list_tables",
+      "mcp__claude_ai_Supabase__apply_migration",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "Bash(node -e \"const p = require\\(''pdf-parse''\\); console.log\\(typeof p, Object.keys\\(p\\)\\)\")",
+      "Bash(node -e \"const { PDFParse } = require\\(''pdf-parse''\\); const p = new PDFParse\\(\\); console.log\\(typeof p, Object.getOwnPropertyNames\\(Object.getPrototypeOf\\(p\\)\\)\\)\")",
+      "Bash(node -e \"const { PDFParse } = require\\(''pdf-parse''\\); console.log\\(typeof PDFParse\\)\")",
+      "Bash(node -e \"const { PDFParse } = require\\(''pdf-parse''\\); const p = new PDFParse\\(\\); console.log\\(Object.getOwnPropertyNames\\(Object.getPrototypeOf\\(p\\)\\).filter\\(n => n !== ''constructor''\\)\\)\")",
+      "Bash(node -e \"const pp = require\\(''pdf-parse''\\); const p = new pp.PDFParse\\(\\); console.log\\(typeof p.loadPDF, typeof p.parseBuffer\\)\")"
     ]
   }
 }

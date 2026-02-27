@@ -41,9 +41,14 @@ create table if not exists public.documents (
   file_size_bytes bigint not null default 0,
   created_by uuid not null references auth.users (id) on delete cascade,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  content_text text,
+  search_vector tsvector generated always as (
+    setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
+    setweight(to_tsvector('english', coalesce(left(content_text, 1000000), '')), 'B')
+  ) stored
 );
-create index if not exists documents_title_idx on public.documents using gin (to_tsvector('simple', coalesce(title, '')));
+create index if not exists documents_search_vector_idx on public.documents using gin (search_vector);
 create index if not exists documents_language_idx on public.documents (language);
 create index if not exists documents_created_at_idx on public.documents (created_at);
 create index if not exists documents_created_by_idx on public.documents (created_by);
@@ -226,6 +231,37 @@ do $$ begin if not exists (
 );
 end if;
 end $$;
+-- Full-text search RPC with relevance ranking
+create or replace function public.search_documents(
+  search_query text,
+  user_id uuid
+)
+returns table (
+  id uuid,
+  title text,
+  storage_path text,
+  file_size_bytes bigint,
+  created_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    d.id,
+    d.title,
+    d.storage_path,
+    d.file_size_bytes,
+    d.created_at
+  from public.documents d
+  where d.created_by = user_id
+    and d.search_vector @@ websearch_to_tsquery('english', search_query)
+  order by ts_rank(d.search_vector, websearch_to_tsquery('english', search_query)) desc,
+           d.created_at desc
+  limit 50;
+$$;
+
 -- ============================================================
 -- Storage: DocForgeVault bucket and RLS policies
 -- ============================================================

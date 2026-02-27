@@ -33,17 +33,27 @@ async function getData(search: string) {
     return { session: null, documents: [] as DocumentRow[] };
   }
 
-  let query = supabase
+  if (search) {
+    // Full-text search with relevance ranking
+    const { data: documents = [], error } = await supabase
+      .rpc("search_documents", {
+        search_query: search,
+        user_id: session.user.id,
+      });
+
+    if (error) {
+      console.error("Failed to search documents", error);
+    }
+
+    return { session, documents: documents || [] };
+  }
+
+  // No search term — return all documents sorted by date
+  const { data: documents = [], error } = await supabase
     .from("documents")
     .select("id,title,storage_path,file_size_bytes,created_at")
     .eq("created_by", session.user.id)
     .order("created_at", { ascending: false });
-
-  if (search) {
-    query = query.ilike("title", `%${search}%`);
-  }
-
-  const { data: documents = [], error } = await query;
 
   if (error) {
     console.error("Failed to load documents", error);

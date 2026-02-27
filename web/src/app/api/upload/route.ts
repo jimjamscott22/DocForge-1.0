@@ -9,6 +9,7 @@ import {
   ValidationError,
   ServerError,
 } from "@/lib/errors";
+import { extractText } from "@/lib/textExtractor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -134,6 +135,9 @@ export async function POST(request: Request) {
       );
     }
 
+    // Extract searchable text content for supported file types
+    const extraction = await extractText(buffer, file.type);
+
     // Save metadata to database
     const { data, error } = await supabase
       .from("documents")
@@ -142,6 +146,7 @@ export async function POST(request: Request) {
         storage_path: uploadData.path,
         file_size_bytes: file.size,
         created_by: session.user.id,
+        ...(extraction?.text ? { content_text: extraction.text } : {}),
       })
       .select("id,title,storage_path,file_size_bytes,created_at")
       .single();
