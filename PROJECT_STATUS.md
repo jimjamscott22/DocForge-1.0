@@ -22,6 +22,7 @@
 ### Recent Changes
 - Added markdown rendering in preview modal using `react-markdown` + `remark-gfm` (headings, lists, code blocks, tables, etc.)
 - Added bulk actions: checkbox selection, batch delete, and batch open for multiple documents
+- Added document sorting and file-type filtering controls in the dashboard (name/date/size + type filter)
 - Extracted document table into `DocumentTable` client component with selection state
 - Added `POST /api/documents/bulk-delete` API endpoint (max 50 per request, ownership verified)
 - Added document deletion (DELETE API endpoint + confirmation dialog UI)
@@ -98,7 +99,7 @@
 - **Drag-and-drop upload**: Add a drop zone to the upload form for easier file uploading
 - ~~**Markdown rendering**: Render `.md` files with formatted headings, lists, and code blocks in the preview modal~~ ✅ Done
 - ~~**Bulk actions**: Select multiple documents for batch deletion or download~~ ✅ Done
-- **Sort and filter**: Sort the document table by name, date, size, or file type; filter by type
+- ~~**Sort and filter**: Sort the document table by name, date, size, or file type; filter by type~~ ✅ Done
 - **Document tagging**: Use the existing `tags` / `document_tags` tables for organization and filtering
 
 ### Medium Term

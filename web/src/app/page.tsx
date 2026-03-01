@@ -18,7 +18,44 @@ type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-async function getData(search: string) {
+type SortOption = "date_desc" | "date_asc" | "name_asc" | "name_desc" | "size_desc" | "size_asc";
+type FileFilterOption = "all" | "pdf" | "img" | "txt" | "doc" | "other";
+
+const getFileTypeFromPath = (path: string): FileFilterOption => {
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
+  if (["pdf"].includes(ext)) return "pdf";
+  if (["png", "jpg", "jpeg", "gif"].includes(ext)) return "img";
+  if (["md", "txt"].includes(ext)) return "txt";
+  if (["doc", "docx"].includes(ext)) return "doc";
+  return "other";
+};
+
+const sortDocuments = (documents: DocumentRow[], sort: SortOption) => {
+  const sorted = [...documents];
+
+  sorted.sort((a, b) => {
+    switch (sort) {
+      case "date_asc":
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      case "date_desc":
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      case "name_asc":
+        return a.title.localeCompare(b.title);
+      case "name_desc":
+        return b.title.localeCompare(a.title);
+      case "size_asc":
+        return (a.file_size_bytes ?? 0) - (b.file_size_bytes ?? 0);
+      case "size_desc":
+        return (b.file_size_bytes ?? 0) - (a.file_size_bytes ?? 0);
+      default:
+        return 0;
+    }
+  });
+
+  return sorted;
+};
+
+async function getData(search: string, sort: SortOption, fileType: FileFilterOption) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { session },
@@ -45,7 +82,12 @@ async function getData(search: string) {
       console.error("Failed to search documents", error);
     }
 
-    return { session, documents: documents || [] };
+    const filtered = (documents || []).filter((doc) => {
+      if (fileType === "all") return true;
+      return getFileTypeFromPath(doc.storage_path) === fileType;
+    });
+
+    return { session, documents: sortDocuments(filtered, sort) };
   }
 
   // No search term — return all documents sorted by date
@@ -59,13 +101,28 @@ async function getData(search: string) {
     console.error("Failed to load documents", error);
   }
 
-  return { session, documents: documents || [] };
+  const filtered = (documents || []).filter((doc) => {
+    if (fileType === "all") return true;
+    return getFileTypeFromPath(doc.storage_path) === fileType;
+  });
+
+  return { session, documents: sortDocuments(filtered, sort) };
 }
 
 export default async function Home({ searchParams }: PageProps) {
   const params = await searchParams;
   const search = typeof params?.q === "string" ? params.q : "";
-  const { session, documents } = await getData(search);
+  const sortParam = typeof params?.sort === "string" ? params.sort : "date_desc";
+  const fileTypeParam = typeof params?.type === "string" ? params.type : "all";
+
+  const sort: SortOption = ["date_desc", "date_asc", "name_asc", "name_desc", "size_desc", "size_asc"].includes(sortParam)
+    ? (sortParam as SortOption)
+    : "date_desc";
+  const fileType: FileFilterOption = ["all", "pdf", "img", "txt", "doc", "other"].includes(fileTypeParam)
+    ? (fileTypeParam as FileFilterOption)
+    : "all";
+
+  const { session, documents } = await getData(search, sort, fileType);
 
   const isAuthed = Boolean(session);
 
@@ -242,7 +299,7 @@ export default async function Home({ searchParams }: PageProps) {
                       </p>
                     </div>
                   </div>
-                  <form className="flex gap-2" method="get">
+                  <form className="flex flex-wrap gap-2" method="get">
                     <div className="relative">
                       <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -261,6 +318,32 @@ export default async function Home({ searchParams }: PageProps) {
                     >
                       Search
                     </button>
+                    <select
+                      name="sort"
+                      defaultValue={sort}
+                      className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-2 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
+                      aria-label="Sort documents"
+                    >
+                      <option value="date_desc">Newest</option>
+                      <option value="date_asc">Oldest</option>
+                      <option value="name_asc">Name (A-Z)</option>
+                      <option value="name_desc">Name (Z-A)</option>
+                      <option value="size_desc">Size (Largest)</option>
+                      <option value="size_asc">Size (Smallest)</option>
+                    </select>
+                    <select
+                      name="type"
+                      defaultValue={fileType}
+                      className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-2 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
+                      aria-label="Filter by file type"
+                    >
+                      <option value="all">All types</option>
+                      <option value="pdf">PDF</option>
+                      <option value="img">Images</option>
+                      <option value="txt">Text / Markdown</option>
+                      <option value="doc">Word Docs</option>
+                      <option value="other">Other</option>
+                    </select>
                   </form>
                 </div>
 
