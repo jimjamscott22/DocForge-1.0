@@ -310,7 +310,7 @@ export default async function Home({ searchParams }: PageProps) {
             </div>
 
             {/* Folder tree + documents grid */}
-            <DashboardClient documents={documents} session={session!} />
+            <DashboardClient documents={documents} />
           </div>
         )}
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import type { Session } from "@supabase/supabase-js";
 import DocumentTable from "./DocumentTable";
 import FolderTree, { FolderNode } from "./FolderTree";
 import CreateFolderModal from "./CreateFolderModal";
@@ -28,10 +27,9 @@ type FolderOption = {
 
 type DashboardClientProps = {
   documents: DocumentRow[];
-  session: Session;
 };
 
-export default function DashboardClient({ documents, session }: DashboardClientProps) {
+export default function DashboardClient({ documents }: DashboardClientProps) {
   const router = useRouter();
   const { showSuccess, showError } = useToast();
 
@@ -51,26 +49,21 @@ export default function DashboardClient({ documents, session }: DashboardClientP
   const [movingDocIds, setMovingDocIds] = useState<string[]>([]);
   const [folders, setFolders] = useState<FolderOption[]>([]);
 
-  // Load folder list for move modal
-  const loadFolders = useCallback(async () => {
-    try {
-      const res = await fetch("/api/folders");
-      if (!res.ok) return;
-      const data = await res.json() as { folders: FolderOption[] };
-      setFolders(data.folders ?? []);
-    } catch {
-      // silently fail
-    }
-  }, []);
-
+  // Load folder list for move modal; re-runs when folderRefreshSignal changes
   useEffect(() => {
-    void loadFolders();
-  }, [loadFolders, folderRefreshSignal]);
+    let cancelled = false;
+    fetch("/api/folders")
+      .then((r) => r.json())
+      .then((data: { folders: FolderOption[] }) => {
+        if (!cancelled) setFolders(data.folders ?? []);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [folderRefreshSignal]);
 
   const handleFolderRefresh = useCallback(() => {
     setFolderRefreshSignal((n) => n + 1);
-    void loadFolders();
-  }, [loadFolders]);
+  }, []);
 
   const handleCreateFolder = (parentId: string | null) => {
     setEditingFolder(null);
