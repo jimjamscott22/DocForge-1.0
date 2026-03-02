@@ -103,6 +103,8 @@ export async function GET() {
       .eq("created_by", userId)
       .gte("created_at", eightWeeksAgo);
 
+    // Initialize 8 weekly buckets; bucket[i] covers docs from (i*7+1) to (i+1)*7 days ago.
+    // bucket[0] = docs from the past 7 days (current week), bucket[7] = 49-56 days ago.
     const weeklyCounts: Record<string, number> = {};
     for (let i = 0; i < 8; i++) {
       const weekStart = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
@@ -111,6 +113,7 @@ export async function GET() {
     }
     for (const d of weeklyDocsRaw ?? []) {
       const date = new Date(d.created_at);
+      // diff=0 → past 7 days → maps to bucket at now-(0+1)*7d
       const diff = Math.floor((now.getTime() - date.getTime()) / (7 * 24 * 60 * 60 * 1000));
       if (diff < 8) {
         const weekStart = new Date(now.getTime() - (diff + 1) * 7 * 24 * 60 * 60 * 1000);
