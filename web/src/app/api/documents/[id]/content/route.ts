@@ -63,6 +63,13 @@ export async function GET(
     const slice = truncated ? bytes.slice(0, MAX_PREVIEW_BYTES) : bytes;
     const content = new TextDecoder("utf-8").decode(slice);
 
+    // Track analytics (fire-and-forget)
+    void supabase.from("document_analytics").insert({
+      document_id: id,
+      user_id: session.user.id,
+      event_type: "preview",
+    });
+
     return NextResponse.json({
       content,
       title: doc.title,

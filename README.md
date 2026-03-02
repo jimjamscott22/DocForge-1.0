@@ -43,23 +43,23 @@ The goal is simple: **never lose knowledge again**.
 
 ## 🛠️ Development Roadmap
 
-### Phase 1 — MVP
+### Phase 1 — MVP ✅ Complete
 - User authentication
 - Document upload and viewing
 - Basic search
 - File storage integration
 
-### Phase 2 — Enhanced Features
+### Phase 2 — Enhanced Features ✅ Complete
 - Advanced search and filters
 - Tagging system
 - Document versioning
 - User roles
 
-### Phase 3 — Advanced Features
-- Collaborative editing
-- Export tools
-- Analytics dashboard
-- API integrations
+### Phase 3 — Advanced Features ✅ Complete
+- Folder organization with drag-and-drop
+- Export tools (PDF signed URL, Markdown download)
+- Analytics dashboard (views, downloads, exports, charts)
+- API key management + public REST API (`/api/v1`)
 
 ---
 

@@ -1,7 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import AuthButtons from "@/components/AuthButtons";
 import UploadForm from "@/components/UploadForm";
-import DocumentTable from "@/components/DocumentTable";
+import DashboardClient from "@/components/DashboardClient";
 import ReferenceLinksSidebar from "@/components/ReferenceLinksSidebar";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,7 @@ type DocumentRow = {
   storage_path: string;
   file_size_bytes: number | null;
   created_at: string;
+  folder_id?: string | null;
 };
 
 type PageProps = {
@@ -82,7 +83,7 @@ async function getData(search: string, sort: SortOption, fileType: FileFilterOpt
       console.error("Failed to search documents", error);
     }
 
-    const filtered = (documents || []).filter((doc) => {
+    const filtered = (documents || []).filter((doc: DocumentRow) => {
       if (fileType === "all") return true;
       return getFileTypeFromPath(doc.storage_path) === fileType;
     });
@@ -93,7 +94,7 @@ async function getData(search: string, sort: SortOption, fileType: FileFilterOpt
   // No search term — return all documents sorted by date
   const { data: documents = [], error } = await supabase
     .from("documents")
-    .select("id,title,storage_path,file_size_bytes,created_at")
+    .select("id,title,storage_path,file_size_bytes,created_at,folder_id")
     .eq("created_by", session.user.id)
     .order("created_at", { ascending: false });
 
@@ -233,72 +234,28 @@ export default async function Home({ searchParams }: PageProps) {
           </section>
         ) : (
           /* ── Authenticated dashboard ── */
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-
-            {/* Upload sidebar */}
-            <section
-              className="animate-fade-up lg:col-span-1"
-              style={{ animationDelay: "0.15s" }}
-            >
-              <div className="card-glow rounded-xl border border-stone-700/50 bg-stone-850/60 p-6 backdrop-blur-sm">
-                <div className="mb-5 flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-forge-500/15">
-                    <svg className="h-4 w-4 text-forge-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="font-display text-lg text-stone-50">Upload</h2>
-                    <p className="text-xs text-stone-500">PDF, images, text &middot; up to 50 MB</p>
-                  </div>
-                </div>
-                <UploadForm />
-              </div>
-
-              <div
-                className="animate-fade-up mt-4 rounded-xl border border-stone-700/50 bg-stone-850/40 p-5 backdrop-blur-sm"
-                style={{ animationDelay: "0.25s" }}
-              >
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-stone-500">
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Storage info
-                </div>
-                <p className="mt-2 text-sm leading-relaxed text-stone-400">
-                  Files are stored in Supabase Storage with row-level security.
-                  Each document is tracked in the database for listing and search.
-                </p>
-              </div>
-
-              <div
-                className="animate-fade-up mt-4"
-                style={{ animationDelay: "0.3s" }}
-              >
-                <ReferenceLinksSidebar />
-              </div>
-            </section>
-
-            {/* Documents list */}
-            <section
-              className="animate-fade-up lg:col-span-2"
-              style={{ animationDelay: "0.2s" }}
-            >
-              <div className="card-glow rounded-xl border border-stone-700/50 bg-stone-850/60 p-6 backdrop-blur-sm">
-                <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-8">
+            {/* Upload + info row */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <section className="animate-fade-up lg:col-span-1" style={{ animationDelay: "0.15s" }}>
+                <div className="card-glow rounded-xl border border-stone-700/50 bg-stone-850/60 p-6 backdrop-blur-sm">
+                  <div className="mb-5 flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-forge-500/15">
                       <svg className="h-4 w-4 text-forge-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
                     </div>
                     <div>
-                      <h2 className="font-display text-lg text-stone-50">Documents</h2>
-                      <p className="text-xs text-stone-500">
-                        {documents.length} file{documents.length !== 1 ? "s" : ""} in your vault
-                      </p>
+                      <h2 className="font-display text-lg text-stone-50">Upload</h2>
+                      <p className="text-xs text-stone-500">PDF, images, text &middot; up to 50 MB</p>
                     </div>
                   </div>
+                  <UploadForm />
+                </div>
+              </section>
+
+              <section className="animate-fade-up lg:col-span-2" style={{ animationDelay: "0.2s" }}>
+                <div className="card-glow rounded-xl border border-stone-700/50 bg-stone-850/60 p-6 backdrop-blur-sm">
                   <form className="flex flex-wrap gap-2" method="get">
                     <div className="relative">
                       <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -345,11 +302,15 @@ export default async function Home({ searchParams }: PageProps) {
                       <option value="other">Other</option>
                     </select>
                   </form>
+                  <div className="mt-4">
+                    <ReferenceLinksSidebar />
+                  </div>
                 </div>
+              </section>
+            </div>
 
-                <DocumentTable documents={documents} />
-              </div>
-            </section>
+            {/* Folder tree + documents grid */}
+            <DashboardClient documents={documents} session={session!} />
           </div>
         )}
 

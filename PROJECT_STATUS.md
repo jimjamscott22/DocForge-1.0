@@ -1,7 +1,7 @@
 # DocForge Project Status
 
 **Last Updated**: 2026-02-17
-**Status**: Fully Functional - Core features working, document management expanding
+**Status**: Fully Functional - Phase 3 Complete
 
 ---
 
@@ -18,6 +18,11 @@
 - **Storage**: Supabase Storage bucket ("DocForgeVault") with per-user file scoping
 - **Error Handling**: Centralized error infrastructure with toast notifications, error boundaries, and structured error codes
 - **Loading States**: Spinners, skeleton loaders, and upload progress indicators
+- **Folder Organization**: Nested folder tree with drag-and-drop, rename, delete, and document counts
+- **Export Tools**: PDF signed URL export for .pdf files; Markdown file download for .txt/.md files
+- **Analytics Dashboard**: Stat cards, top viewed documents, daily/weekly SVG bar charts
+- **API Key Management**: Generate, view, and revoke API keys; one-time raw key display
+- **Public REST API**: `/api/v1/documents` endpoints authenticated with Bearer API keys
 
 ### Recent Changes
 - Added markdown rendering in preview modal using `react-markdown` + `remark-gfm` (headings, lists, code blocks, tables, etc.)

@@ -49,6 +49,13 @@ export async function GET(
       );
     }
 
+    // Track analytics (fire-and-forget)
+    void supabase.from("document_analytics").insert({
+      document_id: id,
+      user_id: session.user.id,
+      event_type: "download",
+    });
+
     return NextResponse.json({
       url: signedUrlData.signedUrl,
       title: doc.title,
