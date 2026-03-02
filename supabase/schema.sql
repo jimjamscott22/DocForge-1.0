@@ -362,3 +362,76 @@ using (
 );
 end if;
 end $$;
+-- ============================================================
+-- Phase 3: Folder Organization
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.folders (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  parent_id uuid REFERENCES public.folders(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.folders ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users manage own folders') THEN
+    CREATE POLICY "Users manage own folders" ON public.folders
+      FOR ALL USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
+ALTER TABLE public.documents ADD COLUMN IF NOT EXISTS folder_id uuid REFERENCES public.folders(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_folders_user_id ON public.folders(user_id);
+CREATE INDEX IF NOT EXISTS idx_folders_parent_id ON public.folders(parent_id);
+CREATE INDEX IF NOT EXISTS idx_documents_folder_id ON public.documents(folder_id);
+
+-- ============================================================
+-- Phase 3: Analytics
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.document_analytics (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  document_id uuid NOT NULL REFERENCES public.documents(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  event_type text NOT NULL CHECK (event_type IN ('view', 'download', 'export', 'preview')),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.document_analytics ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users see own analytics') THEN
+    CREATE POLICY "Users see own analytics" ON public.document_analytics
+      FOR ALL USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_analytics_document_id ON public.document_analytics(document_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_user_id ON public.document_analytics(user_id);
+CREATE INDEX IF NOT EXISTS idx_analytics_created_at ON public.document_analytics(created_at);
+
+-- ============================================================
+-- Phase 3: API Keys
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.api_keys (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  key_hash text NOT NULL UNIQUE,
+  key_prefix text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  last_used_at timestamptz,
+  is_active boolean NOT NULL DEFAULT true
+);
+
+ALTER TABLE public.api_keys ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users manage own API keys') THEN
+    CREATE POLICY "Users manage own API keys" ON public.api_keys
+      FOR ALL USING (auth.uid() = user_id);
+  END IF;
+END $$;

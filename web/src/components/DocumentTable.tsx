@@ -7,6 +7,7 @@ import ViewDocumentButton from "./ViewDocumentButton";
 import DeleteDocumentButton from "./DeleteDocumentButton";
 import TextPreviewModal from "./TextPreviewModal";
 import PdfPreviewModal from "./PdfPreviewModal";
+import ExportButton from "./ExportButton";
 
 type DocumentRow = {
   id: string;
@@ -14,6 +15,7 @@ type DocumentRow = {
   storage_path: string;
   file_size_bytes: number | null;
   created_at: string;
+  folder_id?: string | null;
 };
 
 const formatBytes = (bytes: number | null) => {
@@ -64,8 +66,10 @@ const FileTypeIcon = ({ type }: { type: string }) => {
 
 export default function DocumentTable({
   documents,
+  onMoveToFolder,
 }: {
   documents: DocumentRow[];
+  onMoveToFolder?: (ids: string[]) => void;
 }) {
   const router = useRouter();
   const { showSuccess, showError } = useToast();
@@ -260,6 +264,17 @@ export default function DocumentTable({
               </>
             )}
           </button>
+          {onMoveToFolder && (
+            <button
+              onClick={() => onMoveToFolder(Array.from(selectedIds))}
+              className="focus-ring inline-flex items-center gap-1.5 rounded-md border border-stone-700/50 bg-stone-800 px-3 py-1.5 text-xs font-semibold text-stone-300 transition hover:border-forge-500/40 hover:text-forge-300"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+              </svg>
+              Move to folder
+            </button>
+          )}
           <button
             onClick={() => setSelectedIds(new Set())}
             className="ml-auto text-xs text-stone-500 transition hover:text-stone-300"
@@ -302,6 +317,8 @@ export default function DocumentTable({
             {documents.map((doc) => (
               <tr
                 key={doc.id}
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData("text/plain", doc.id)}
                 className={`table-row-hover ${selectedIds.has(doc.id) ? "bg-forge-500/[0.06]" : ""}`}
               >
                 <td className="w-10 px-3 py-3.5">
@@ -345,6 +362,11 @@ export default function DocumentTable({
                       );
                       return null;
                     })()}
+                    <ExportButton
+                      documentId={doc.id}
+                      storagePath={doc.storage_path}
+                      documentTitle={doc.title}
+                    />
                     <ViewDocumentButton documentId={doc.id} />
                     <DeleteDocumentButton
                       documentId={doc.id}
