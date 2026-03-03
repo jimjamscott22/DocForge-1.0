@@ -56,10 +56,10 @@ export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
       return errorResponse(
         new AppError({
           code: ErrorCode.UNAUTHORIZED,
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
     // Build a unique path scoped to the user: <user_id>/<timestamp>-<uuid>-<filename>
     const safeName = path.basename(file.name).replace(/\s+/g, "-");
     const uniqueName = `${Date.now()}-${crypto.randomUUID()}-${safeName}`;
-    const storagePath = `${session.user.id}/${uniqueName}`;
+    const storagePath = `${user.id}/${uniqueName}`;
 
     // Upload file to Supabase Storage
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -145,7 +145,7 @@ export async function POST(request: Request) {
         title: title.trim(),
         storage_path: uploadData.path,
         file_size_bytes: file.size,
-        created_by: session.user.id,
+        created_by: user.id,
         ...(extraction?.text ? { content_text: extraction.text } : {}),
       })
       .select("id,title,storage_path,file_size_bytes,created_at")

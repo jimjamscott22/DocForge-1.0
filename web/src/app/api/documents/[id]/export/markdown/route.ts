@@ -14,8 +14,8 @@ export async function GET(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { data: doc, error: docError } = await supabase
       .from("documents")
@@ -26,7 +26,7 @@ export async function GET(
     if (docError || !doc) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
-    if (doc.created_by !== session.user.id) {
+    if (doc.created_by !== user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -50,7 +50,7 @@ export async function GET(
     // Track analytics (fire-and-forget)
     void supabase.from("document_analytics").insert({
       document_id: id,
-      user_id: session.user.id,
+      user_id: user.id,
       event_type: "export",
     });
 

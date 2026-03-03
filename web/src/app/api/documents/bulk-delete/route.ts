@@ -32,10 +32,10 @@ export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
       return errorResponse(
         new AppError({
           code: ErrorCode.UNAUTHORIZED,
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     }
 
     // Filter to only documents owned by this user
-    const ownedDocs = (docs || []).filter((doc) => doc.created_by === session.user.id);
+    const ownedDocs = (docs || []).filter((doc) => doc.created_by === user.id);
 
     if (ownedDocs.length === 0) {
       return NextResponse.json({ success: true, deleted: 0 });

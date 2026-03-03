@@ -11,8 +11,8 @@ export async function PATCH(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json() as { folder_id?: string | null };
     const folder_id = body.folder_id ?? null;
@@ -27,7 +27,7 @@ export async function PATCH(
     if (docError || !doc) {
       return NextResponse.json({ error: "Document not found" }, { status: 404 });
     }
-    if (doc.created_by !== session.user.id) {
+    if (doc.created_by !== user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -37,7 +37,7 @@ export async function PATCH(
         .from("folders")
         .select("id")
         .eq("id", folder_id)
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .single();
       if (!folder) {
         return NextResponse.json({ error: "Folder not found" }, { status: 404 });

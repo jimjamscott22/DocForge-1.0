@@ -25,7 +25,7 @@ export async function extractText(
       try {
         // Lazy require to avoid pdf-parse loading a test file at import time
         // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfParse = require("pdf-parse");
+        const pdfParse = require("pdf-parse/lib/pdf-parse.js");
         const result = await pdfParse(buffer);
         raw = result.text;
       } catch (err) {

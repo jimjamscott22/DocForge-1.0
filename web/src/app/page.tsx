@@ -59,16 +59,16 @@ const sortDocuments = (documents: DocumentRow[], sort: SortOption) => {
 async function getData(search: string, sort: SortOption, fileType: FileFilterOption) {
   const supabase = await createSupabaseServerClient();
   const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-  if (sessionError) {
-    console.error("Failed to read session", sessionError);
+  if (userError) {
+    console.error("Failed to read user", userError);
   }
 
-  if (!session) {
-    return { session: null, documents: [] as DocumentRow[] };
+  if (!user) {
+    return { user: null, documents: [] as DocumentRow[] };
   }
 
   if (search) {
@@ -76,7 +76,7 @@ async function getData(search: string, sort: SortOption, fileType: FileFilterOpt
     const { data: documents = [], error } = await supabase
       .rpc("search_documents", {
         search_query: search,
-        user_id: session.user.id,
+        user_id: user.id,
       });
 
     if (error) {
@@ -88,14 +88,14 @@ async function getData(search: string, sort: SortOption, fileType: FileFilterOpt
       return getFileTypeFromPath(doc.storage_path) === fileType;
     });
 
-    return { session, documents: sortDocuments(filtered, sort) };
+    return { user, documents: sortDocuments(filtered, sort) };
   }
 
   // No search term — return all documents sorted by date
   const { data: documents = [], error } = await supabase
     .from("documents")
     .select("id,title,storage_path,file_size_bytes,created_at,folder_id")
-    .eq("created_by", session.user.id)
+    .eq("created_by", user.id)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -107,7 +107,7 @@ async function getData(search: string, sort: SortOption, fileType: FileFilterOpt
     return getFileTypeFromPath(doc.storage_path) === fileType;
   });
 
-  return { session, documents: sortDocuments(filtered, sort) };
+  return { user, documents: sortDocuments(filtered, sort) };
 }
 
 export default async function Home({ searchParams }: PageProps) {
@@ -123,9 +123,9 @@ export default async function Home({ searchParams }: PageProps) {
     ? (fileTypeParam as FileFilterOption)
     : "all";
 
-  const { session, documents } = await getData(search, sort, fileType);
+  const { user, documents } = await getData(search, sort, fileType);
 
-  const isAuthed = Boolean(session);
+  const isAuthed = Boolean(user);
 
   return (
     <main className="noise-bg relative min-h-screen bg-stone-900 text-stone-200 antialiased">
@@ -162,12 +162,12 @@ export default async function Home({ searchParams }: PageProps) {
             style={{ animationDelay: "0.1s" }}
           >
             <div className="mb-3 text-sm text-stone-400">
-              {session?.user?.email ? (
+              {user?.email ? (
                 <div className="space-y-0.5">
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-500">
                     Signed in as
                   </p>
-                  <p className="font-medium text-stone-200">{session.user.email}</p>
+                  <p className="font-medium text-stone-200">{user.email}</p>
                 </div>
               ) : (
                 <p className="font-medium text-stone-300">Sign in to get started</p>

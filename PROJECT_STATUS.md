@@ -1,142 +1,131 @@
 # DocForge Project Status
 
-**Last Updated**: 2026-02-17
-**Status**: Fully Functional - Phase 3 Complete
+**Last Updated**: 2026-03-02  
+**Status**: Phase 3 feature set is mostly complete; production hardening is still needed.
 
 ---
 
-## Current Status
+## Review Scope
 
-### What's Working
-- **File Upload System**: Multi-file upload with real-time progress tracking and validation
-- **Document Viewing**: Open documents via signed URLs (1-hour expiry)
-- **Text File Preview**: In-app preview modal for `.txt` and `.md` files with styled monospace viewer
-- **Document Deletion**: Delete documents from the vault with confirmation dialog, removes both storage file and database record
-- **Search**: Case-insensitive document title search
-- **Authentication**: OAuth via Google and GitHub through Supabase Auth
-- **Database**: Supabase PostgreSQL with row-level security (RLS) policies
-- **Storage**: Supabase Storage bucket ("DocForgeVault") with per-user file scoping
-- **Error Handling**: Centralized error infrastructure with toast notifications, error boundaries, and structured error codes
-- **Loading States**: Spinners, skeleton loaders, and upload progress indicators
-- **Folder Organization**: Nested folder tree with drag-and-drop, rename, delete, and document counts
-- **Export Tools**: PDF signed URL export for .pdf files; Markdown file download for .txt/.md files
-- **Analytics Dashboard**: Stat cards, top viewed documents, daily/weekly SVG bar charts
-- **API Key Management**: Generate, view, and revoke API keys; one-time raw key display
-- **Public REST API**: `/api/v1/documents` endpoints authenticated with Bearer API keys
+This status update is based on a direct review of:
 
-### Recent Changes
-- Added markdown rendering in preview modal using `react-markdown` + `remark-gfm` (headings, lists, code blocks, tables, etc.)
-- Added bulk actions: checkbox selection, batch delete, and batch open for multiple documents
-- Added document sorting and file-type filtering controls in the dashboard (name/date/size + type filter)
-- Extracted document table into `DocumentTable` client component with selection state
-- Added `POST /api/documents/bulk-delete` API endpoint (max 50 per request, ownership verified)
-- Added document deletion (DELETE API endpoint + confirmation dialog UI)
-- Added in-app text/markdown file preview modal with content API endpoint
+- `web/src/app` routes and pages
+- `web/src/components` UI behavior
+- `web/src/lib` auth/error/search helpers
+- `supabase/schema.sql` and migration files
+- Current docs and setup files
+
+Verification checks run during review:
+
+- `npm run build` -> passes
+- `npm run lint` -> fails (2 errors, 2 warnings)
 
 ---
 
-## Architecture Overview
+## Verified Complete
 
-### Tech Stack
-- **Frontend**: Next.js 16 (React 19) + TypeScript + TailwindCSS v4
-- **Backend**: Next.js API routes (no separate server)
-- **Database**: Supabase (PostgreSQL) with RLS
-- **Storage**: Supabase Storage bucket "DocForgeVault"
-- **Authentication**: Supabase Auth (Google & GitHub OAuth)
+### Core app capabilities
 
-### Key Components
+- Authentication via Supabase OAuth (Google/GitHub)
+- Secure upload to Supabase Storage with size/type validation and progress
+- Searchable document metadata with full-text search support (`content_text` + `search_vector`)
+- Document open/download via signed URLs
+- Text and Markdown in-app preview
+- PDF in-app preview modal
+- Single delete and bulk delete
+- Bulk open, sort, and file-type filtering
 
-1. **Frontend** (`web/src/`)
-   - `app/page.tsx` - Main dashboard with document list, search, upload sidebar
-   - `components/UploadForm.tsx` - File upload with XHR progress tracking
-   - `components/ViewDocumentButton.tsx` - Open document in new tab via signed URL
-   - `components/DocumentTable.tsx` - Document list with checkbox selection and bulk actions
-   - `components/DeleteDocumentButton.tsx` - Delete with confirmation dialog
-   - `components/TextPreviewModal.tsx` - In-app text/markdown preview (renders `.md` with `react-markdown`)
-   - `components/ToastProvider.tsx` - Toast notification system
-   - `components/ErrorProvider.tsx` - Centralized error handling context
-   - `components/ErrorBoundary.tsx` - React error boundary
-   - `components/Spinner.tsx` - Loading spinner variants (sm/md/lg, overlay, inline)
-   - `components/Skeleton.tsx` - Skeleton loader components
-   - `components/AuthButtons.tsx` - OAuth sign-in/sign-out buttons
-   - `components/ReferenceLinksSidebar.tsx` - Quick reference links
+### Folder organization (confirmed complete)
 
-2. **API Routes** (`web/src/app/api/`)
-   - `POST /api/upload` - Upload file to vault
-   - `GET /api/documents/[id]/download` - Get signed download URL
-   - `GET /api/documents/[id]/content` - Get text file content for in-app preview
-   - `DELETE /api/documents/[id]` - Delete a document (storage + database)
-   - `POST /api/documents/bulk-delete` - Batch delete up to 50 documents
-   - `GET /api/health` - Health check
+- Nested folders with create, rename, delete
+- Drag-and-drop document-to-folder movement
+- Move-to-folder modal support
+- Folder-aware dashboard filtering
+- Database support in schema and migration files (`folders`, `documents.folder_id`, indexes, RLS)
 
-3. **Auth Routes** (`web/src/app/auth/`)
-   - `GET /auth/callback` - OAuth callback handler
-   - `POST /auth/signout` - Sign out and clear session
+### Phase 3 additions present
 
-4. **Database Schema** (`supabase/schema.sql`)
-   - `documents` table with RLS policies (owner + admin access)
-   - `document_tags` and `tags` tables for categorization
-   - Storage bucket RLS policies for per-user file access control
-
-### File Storage
-- Files stored in Supabase Storage bucket "DocForgeVault"
-- Path format: `{user_id}/{timestamp}-{uuid}-{filename}`
-- Maximum file size: 50 MB
-- Allowed types: PDF, TXT, MD, DOC, DOCX, PNG, JPG, JPEG, GIF
+- Export tools:
+  - PDF export endpoint for native PDF files
+  - Markdown export endpoint for text/markdown files
+- Analytics dashboard with totals, activity charts, and top-document logic
+- API key management UI (create/list/revoke with one-time key reveal)
+- Public API route set under `/api/v1/documents`
 
 ---
 
-## Configuration
+## Corrections From This Review
 
-### Environment Variables
-- `.env.local` - Contains `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` (gitignored)
+The following items were either overstated previously or need follow-up before calling the app fully production-ready.
 
-### Important Files
-- `.claude/settings.local.json` - Claude permissions configuration
-- `.gitignore` - Ignores sensitive files and build artifacts
-- `supabase/schema.sql` - Database schema, RLS policies, and storage bucket setup
+1. API key auth path needs hardening for true external use
+   - `authenticateApiKey()` uses the standard server client (`web/src/lib/apiKeyAuth.ts`), which depends on request auth context and RLS.
+   - For non-browser/external clients, this can block key lookup unless handled with a dedicated server-side client pattern.
+
+2. Analytics "view" metric is not currently emitted
+   - Dashboard queries `event_type = 'view'`, but current routes only log `download`, `preview`, and `export`.
+   - Result: "Views" and "Top viewed" can stay empty/inaccurate.
+
+3. Search results lose folder context
+   - `search_documents` return shape does not include `folder_id`.
+   - When searching, folder-aware UI logic cannot fully preserve placement context.
+
+4. Move modal only renders two folder depths
+   - Tree supports nesting, but `MoveDocumentModal` currently presents root + first child level only.
+   - Deeply nested folders are harder to target from the modal.
+
+5. Lint health is not clean
+   - Current lint run reports:
+     - link usage issue in `web/src/app/error.tsx`
+     - callback ordering/dependency issue in `web/src/components/ToastProvider.tsx`
+     - unused import warning in `web/src/components/ErrorBoundary.tsx`
 
 ---
 
-## Potential Future Upgrades
+## Remaining Improvements (Prioritized)
 
-### Short Term
-- **Drag-and-drop upload**: Add a drop zone to the upload form for easier file uploading
-- ~~**Markdown rendering**: Render `.md` files with formatted headings, lists, and code blocks in the preview modal~~ ✅ Done
-- ~~**Bulk actions**: Select multiple documents for batch deletion or download~~ ✅ Done
-- ~~**Sort and filter**: Sort the document table by name, date, size, or file type; filter by type~~ ✅ Done
-- **Document tagging**: Use the existing `tags` / `document_tags` tables for organization and filtering
+### P0 - Reliability and security
 
-### Medium Term
-- **Folder organization**: Nested folder structure for grouping documents
-- **File versioning**: Track and restore previous versions of a document
-- **PDF preview**: In-app PDF viewer instead of opening in a new tab
-- **Image preview**: Thumbnail gallery and lightbox for uploaded images
-- **Document sharing**: Generate public or time-limited share links for individual documents
-- **Multi-user collaboration**: Share vaults or folders with other authenticated users
+- Finalize API key auth architecture for external clients (server-only key verification flow)
+- Add route-level rate limiting for upload, key creation, and public API endpoints
+- Wrap multi-step destructive folder operations in transactional DB logic (or RPC) for consistency
+- Add audit logging for sensitive actions (key create/revoke, delete, move)
 
-### Long Term
-- **Full-text search**: Index document contents for searching within file text, not just titles
-- **AI-powered features**: Document summarization, auto-tagging, content extraction
-- **OCR**: Extract text from scanned documents and images
-- **Third-party integrations**: Import from Google Drive, Dropbox, or OneDrive
-- **Mobile / PWA**: Progressive web app or native mobile client for on-the-go access
-- **Audit log**: Track document uploads, views, deletions, and shares for compliance
-- **Alternative storage backends**: Option to use S3, Cloudflare R2, or DigitalOcean Spaces instead of or alongside Supabase Storage
+### P1 - Product quality
+
+- Add automated tests:
+  - unit tests for lib and route validation
+  - integration tests for API routes and RLS assumptions
+  - e2e tests for auth/upload/folder/document workflows
+- Support fully recursive folder selection in move modal
+- Add pagination/virtualization for large document sets
+- Improve accessibility around dialog focus management and drag-and-drop keyboard alternatives
+
+### P1 - Documentation accuracy
+
+- Update root `README.md` to match actual implementation status
+- Update `web/README.md` (still describes old local-file-storage behavior)
+- Add concise API docs for `/api/v1` (auth format, response shapes, error codes)
+
+### P2 - Feature expansion
+
+- Document versioning and rollback
+- Tagging UI using existing `tags` and `document_tags` schema
+- Public/time-limited share links
+- Image gallery/lightbox preview and richer media metadata
+- Optional OCR pipeline for image/PDF text extraction
 
 ---
 
 ## Known Issues
 
-- None currently identified
+- Lint currently fails (see Corrections section).
+- Analytics "view" events are not currently emitted.
+- Search mode does not include folder context in returned rows.
+- API key external-client flow needs hardening/verification.
 
 ---
 
-## Quick Start
+## Current Assessment
 
-```bash
-cd web
-cp env.example .env.local   # Fill in Supabase URL and anon key
-npm install
-npm run dev                  # Starts on http://localhost:3000
-```
+DocForge has moved beyond MVP and includes substantial Phase 3 functionality, including folder organization, exports, analytics UI, and API key management. Folder organization is complete in core behavior. The remaining work is mostly production hardening, correctness polish, and test/documentation maturity rather than missing baseline features.

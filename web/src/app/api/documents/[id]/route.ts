@@ -35,10 +35,10 @@ export async function DELETE(
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
       return errorResponse(
         new AppError({
           code: ErrorCode.UNAUTHORIZED,
@@ -62,7 +62,7 @@ export async function DELETE(
       );
     }
 
-    if (doc.created_by !== session.user.id) {
+    if (doc.created_by !== user.id) {
       return errorResponse(
         new AppError({
           code: ErrorCode.UNAUTHORIZED,

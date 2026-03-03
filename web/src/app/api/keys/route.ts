@@ -8,13 +8,13 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { data: keys, error } = await supabase
       .from("api_keys")
       .select("id,name,key_prefix,created_at,last_used_at,is_active")
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -31,8 +31,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json() as { name?: string };
     const name = body.name?.trim();
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const { data: key, error } = await supabase
       .from("api_keys")
       .insert({
-        user_id: session.user.id,
+        user_id: user.id,
         name,
         key_hash: keyHash,
         key_prefix: keyPrefix,
