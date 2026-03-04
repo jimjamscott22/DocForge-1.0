@@ -1,7 +1,6 @@
 "use client";
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { useErrorHandler } from "./ErrorProvider";
 
 interface Props {
   children: ReactNode;
