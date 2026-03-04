@@ -181,7 +181,7 @@ export default async function Home({ searchParams }: PageProps) {
         <div className="h-px bg-gradient-to-r from-transparent via-stone-700/60 to-transparent" />
 
         {!isAuthed ? (
-          /* ── Unauthenticated state ── */
+          <>
           <section
             className="animate-fade-up grid gap-6 sm:grid-cols-2"
             style={{ animationDelay: "0.2s" }}
@@ -232,6 +232,11 @@ export default async function Home({ searchParams }: PageProps) {
               </ul>
             </div>
           </section>
+        
+          <section className="animate-fade-up" style={{ animationDelay: "0.25s" }}>
+            <ReferenceLinksSidebar />
+          </section>
+          </>
         ) : (
           /* ── Authenticated dashboard ── */
           <div className="flex flex-col gap-8">
