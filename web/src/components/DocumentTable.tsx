@@ -145,7 +145,7 @@ export default function DocumentTable({
     let opened = 0;
     try {
       for (const id of selectedIds) {
-        const res = await fetch(`/api/documents/${id}/download`);
+        const res = await fetch(`/api/documents/${id}/download?event=view`);
         if (!res.ok) continue;
         const { url } = await res.json();
         window.open(url, "_blank", "noopener,noreferrer");

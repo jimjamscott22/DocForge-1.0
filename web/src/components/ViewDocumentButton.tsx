@@ -8,7 +8,7 @@ export default function ViewDocumentButton({ documentId }: { documentId: string 
   const handleClick = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/documents/${documentId}/download`);
+      const res = await fetch(`/api/documents/${documentId}/download?event=view`);
       if (!res.ok) {
         console.error("Failed to get download URL");
         return;

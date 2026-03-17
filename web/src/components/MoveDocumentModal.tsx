@@ -8,6 +8,25 @@ type FolderOption = {
   parent_id: string | null;
 };
 
+type FlattenedFolderOption = FolderOption & {
+  depth: number;
+};
+
+function flattenFolders(
+  folders: FolderOption[],
+  parentId: string | null = null,
+  depth = 0
+): FlattenedFolderOption[] {
+  const directChildren = folders
+    .filter((folder) => folder.parent_id === parentId)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  return directChildren.flatMap((folder) => [
+    { ...folder, depth },
+    ...flattenFolders(folders, folder.id, depth + 1),
+  ]);
+}
+
 type MoveDocumentModalProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -72,8 +91,7 @@ export default function MoveDocumentModal({
     }
   };
 
-  const rootFolders = folders.filter((f) => !f.parent_id);
-  const childFolders = folders.filter((f) => f.parent_id);
+  const flattenedFolders = flattenFolders(folders);
 
   return (
     <dialog
@@ -102,36 +120,27 @@ export default function MoveDocumentModal({
             Root (no folder)
           </button>
 
-          {rootFolders.map((folder) => (
-            <div key={folder.id}>
-              <button
-                type="button"
-                onClick={() => setSelectedFolderId(folder.id)}
-                className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm transition hover:bg-stone-800 ${
-                  selectedFolderId === folder.id ? "bg-forge-500/15 text-forge-300" : "text-stone-300"
-                }`}
+          {flattenedFolders.map((folder) => (
+            <button
+              key={folder.id}
+              type="button"
+              onClick={() => setSelectedFolderId(folder.id)}
+              className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm transition hover:bg-stone-800 ${
+                selectedFolderId === folder.id ? "bg-forge-500/15 text-forge-300" : folder.depth === 0 ? "text-stone-300" : "text-stone-400"
+              }`}
+              style={{ paddingLeft: `${16 + folder.depth * 20}px` }}
+            >
+              <svg
+                className={`flex-shrink-0 ${folder.depth === 0 ? "h-4 w-4" : "h-3.5 w-3.5"}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
               >
-                <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                </svg>
-                {folder.name}
-              </button>
-              {childFolders.filter((c) => c.parent_id === folder.id).map((child) => (
-                <button
-                  key={child.id}
-                  type="button"
-                  onClick={() => setSelectedFolderId(child.id)}
-                  className={`flex w-full items-center gap-2 px-8 py-2.5 text-left text-sm transition hover:bg-stone-800 ${
-                    selectedFolderId === child.id ? "bg-forge-500/15 text-forge-300" : "text-stone-400"
-                  }`}
-                >
-                  <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                  </svg>
-                  {child.name}
-                </button>
-              ))}
-            </div>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+              </svg>
+              <span className="truncate">{folder.name}</span>
+            </button>
           ))}
 
           {folders.length === 0 && (

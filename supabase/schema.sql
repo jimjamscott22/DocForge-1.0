@@ -241,7 +241,8 @@ returns table (
   title text,
   storage_path text,
   file_size_bytes bigint,
-  created_at timestamptz
+  created_at timestamptz,
+  folder_id uuid
 )
 language sql
 stable
@@ -253,7 +254,8 @@ as $$
     d.title,
     d.storage_path,
     d.file_size_bytes,
-    d.created_at
+    d.created_at,
+    d.folder_id
   from public.documents d
   where d.created_by = user_id
     and d.search_vector @@ websearch_to_tsquery('english', search_query)

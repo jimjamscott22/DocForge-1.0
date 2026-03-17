@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
+import { createSupabaseAdminClient } from "@/lib/supabaseAdminClient";
 
 export type ApiKeyAuthResult =
   | { success: true; userId: string }
@@ -19,7 +19,7 @@ export async function authenticateApiKey(
 
   const keyHash = createHash("sha256").update(rawKey).digest("hex");
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   const { data: key, error } = await supabase
     .from("api_keys")
     .select("id,user_id,is_active")

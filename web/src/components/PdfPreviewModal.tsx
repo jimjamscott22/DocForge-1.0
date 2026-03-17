@@ -34,7 +34,7 @@ export default function PdfPreviewModal({
     setSignedUrl(null);
 
     try {
-      const res = await fetch(`/api/documents/${documentId}/download`);
+      const res = await fetch(`/api/documents/${documentId}/download?event=preview`);
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setError(data?.error || "Failed to load PDF");

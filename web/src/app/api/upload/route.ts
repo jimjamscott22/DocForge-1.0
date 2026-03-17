@@ -10,23 +10,16 @@ import {
   ServerError,
 } from "@/lib/errors";
 import { extractText } from "@/lib/textExtractor";
+import {
+  ALLOWED_UPLOAD_MIME_TYPES,
+  resolveFileMimeType,
+} from "@/lib/uploadMime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const BUCKET_NAME = "DocForgeVault";
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "text/plain",
-  "text/markdown",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "image/png",
-  "image/jpeg",
-  "image/gif",
-];
-
 function errorResponse(error: AppError): NextResponse {
   return NextResponse.json(
     {
@@ -96,15 +89,19 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    const resolvedMimeType = resolveFileMimeType(file);
+
+    if (!ALLOWED_UPLOAD_MIME_TYPES.includes(resolvedMimeType)) {
       return errorResponse(
         new AppError({
           code: ErrorCode.INVALID_FILE_TYPE,
           severity: ErrorSeverity.MEDIUM,
           userMessage: "File type not supported. Please upload PDF, TXT, MD, DOC, DOCX, PNG, JPG, or GIF files",
           details: {
-            allowedTypes: ALLOWED_TYPES,
+            allowedTypes: ALLOWED_UPLOAD_MIME_TYPES,
             providedType: file.type,
+            resolvedType: resolvedMimeType,
+            fileName: file.name,
           },
         })
       );
@@ -120,7 +117,7 @@ export async function POST(request: Request) {
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(storagePath, buffer, {
-        contentType: file.type,
+        contentType: resolvedMimeType,
         upsert: false,
       });
 
@@ -136,7 +133,7 @@ export async function POST(request: Request) {
     }
 
     // Extract searchable text content for supported file types
-    const extraction = await extractText(buffer, file.type);
+    const extraction = await extractText(buffer, resolvedMimeType);
 
     // Save metadata to database
     const { data, error } = await supabase

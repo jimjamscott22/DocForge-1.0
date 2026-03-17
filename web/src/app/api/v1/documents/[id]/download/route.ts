@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
+import { createSupabaseAdminClient } from "@/lib/supabaseAdminClient";
 import { authenticateApiKey } from "@/lib/apiKeyAuth";
 
 export const runtime = "nodejs";
@@ -18,7 +18,7 @@ export async function GET(
       return NextResponse.json({ error: authResult.error }, { status: authResult.status });
     }
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = createSupabaseAdminClient();
     const { data: doc, error: docError } = await supabase
       .from("documents")
       .select("storage_path, title")

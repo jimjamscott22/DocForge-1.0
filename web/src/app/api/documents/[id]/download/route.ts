@@ -7,11 +7,13 @@ export const dynamic = "force-dynamic";
 const BUCKET_NAME = "DocForgeVault";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    const { searchParams } = new URL(request.url);
+    const eventType = searchParams.get("event") ?? "download";
     const supabase = await createSupabaseServerClient();
     const {
       data: { user },
@@ -49,12 +51,13 @@ export async function GET(
       );
     }
 
-    // Track analytics (fire-and-forget)
-    void supabase.from("document_analytics").insert({
-      document_id: id,
-      user_id: user.id,
-      event_type: "download",
-    });
+    if (["download", "view", "preview"].includes(eventType)) {
+      void supabase.from("document_analytics").insert({
+        document_id: id,
+        user_id: user.id,
+        event_type: eventType,
+      });
+    }
 
     return NextResponse.json({
       url: signedUrlData.signedUrl,

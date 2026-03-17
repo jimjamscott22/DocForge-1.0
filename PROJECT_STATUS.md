@@ -1,131 +1,103 @@
 # DocForge Project Status
 
-**Last Updated**: 2026-03-02  
-**Status**: Phase 3 feature set is mostly complete; production hardening is still needed.
+**Last Updated**: 2026-03-09  
+**Status**: Phase 3 is implemented and the recent hardening/documentation pass is complete.
 
 ---
 
 ## Review Scope
 
-This status update is based on a direct review of:
+This status reflects a direct review of:
 
 - `web/src/app` routes and pages
 - `web/src/components` UI behavior
 - `web/src/lib` auth/error/search helpers
 - `supabase/schema.sql` and migration files
-- Current docs and setup files
+- project documentation and setup files
 
-Verification checks run during review:
+Verification checks:
 
+- `npm run lint` -> passes
 - `npm run build` -> passes
-- `npm run lint` -> fails (2 errors, 2 warnings)
 
 ---
 
 ## Verified Complete
 
-### Core app capabilities
+### Core functionality
 
-- Authentication via Supabase OAuth (Google/GitHub)
-- Secure upload to Supabase Storage with size/type validation and progress
-- Searchable document metadata with full-text search support (`content_text` + `search_vector`)
-- Document open/download via signed URLs
-- Text and Markdown in-app preview
-- PDF in-app preview modal
+- Supabase OAuth authentication with Google and GitHub
+- Secure upload to Supabase Storage with validation and progress feedback
+- Full-text search over titles and extracted text content
+- Signed URL open/download flow
+- Text, Markdown, and PDF preview support
 - Single delete and bulk delete
 - Bulk open, sort, and file-type filtering
 
-### Folder organization (confirmed complete)
+### Folder organization
 
-- Nested folders with create, rename, delete
-- Drag-and-drop document-to-folder movement
-- Move-to-folder modal support
+- Nested folders with create, rename, and delete
+- Drag-and-drop document moves in the folder tree
+- Move-to-folder modal with recursive folder depth support
 - Folder-aware dashboard filtering
-- Database support in schema and migration files (`folders`, `documents.folder_id`, indexes, RLS)
+- Database support in schema/migrations with RLS
 
-### Phase 3 additions present
+### Phase 3 additions
 
-- Export tools:
-  - PDF export endpoint for native PDF files
-  - Markdown export endpoint for text/markdown files
-- Analytics dashboard with totals, activity charts, and top-document logic
-- API key management UI (create/list/revoke with one-time key reveal)
-- Public API route set under `/api/v1/documents`
+- Export tools for PDF and Markdown-compatible content
+- Analytics dashboard with totals, charts, and top-viewed documents
+- API key management UI with one-time raw key display
+- Public REST API under `/api/v1/documents`
 
 ---
 
-## Corrections From This Review
+## Recently Fixed
 
-The following items were either overstated previously or need follow-up before calling the app fully production-ready.
-
-1. API key auth path needs hardening for true external use
-   - `authenticateApiKey()` uses the standard server client (`web/src/lib/apiKeyAuth.ts`), which depends on request auth context and RLS.
-   - For non-browser/external clients, this can block key lookup unless handled with a dedicated server-side client pattern.
-
-2. Analytics "view" metric is not currently emitted
-   - Dashboard queries `event_type = 'view'`, but current routes only log `download`, `preview`, and `export`.
-   - Result: "Views" and "Top viewed" can stay empty/inaccurate.
-
-3. Search results lose folder context
-   - `search_documents` return shape does not include `folder_id`.
-   - When searching, folder-aware UI logic cannot fully preserve placement context.
-
-4. Move modal only renders two folder depths
-   - Tree supports nesting, but `MoveDocumentModal` currently presents root + first child level only.
-   - Deeply nested folders are harder to target from the modal.
-
-5. Lint health is not clean
-   - Current lint run reports:
-     - link usage issue in `web/src/app/error.tsx`
-     - callback ordering/dependency issue in `web/src/components/ToastProvider.tsx`
-     - unused import warning in `web/src/components/ErrorBoundary.tsx`
+- API key auth now uses a dedicated server-side admin client, making external API-key access reliable
+- Analytics `view` events are now emitted when users open documents; PDF previews emit `preview`
+- Search results now include `folder_id`, restoring folder context during search
+- Move modal now supports deeply nested folders, not just two levels
+- Lint issues in the error page and shared UI helpers were resolved
 
 ---
 
-## Remaining Improvements (Prioritized)
+## Remaining Improvements
 
 ### P0 - Reliability and security
 
-- Finalize API key auth architecture for external clients (server-only key verification flow)
-- Add route-level rate limiting for upload, key creation, and public API endpoints
-- Wrap multi-step destructive folder operations in transactional DB logic (or RPC) for consistency
-- Add audit logging for sensitive actions (key create/revoke, delete, move)
+- Add route-level rate limiting for uploads, key creation, and public API endpoints
+- Wrap multi-step destructive folder operations in transactional DB logic or RPCs
+- Add audit logging for key creation/revocation, deletes, moves, and exports
 
 ### P1 - Product quality
 
-- Add automated tests:
-  - unit tests for lib and route validation
-  - integration tests for API routes and RLS assumptions
-  - e2e tests for auth/upload/folder/document workflows
-- Support fully recursive folder selection in move modal
-- Add pagination/virtualization for large document sets
-- Improve accessibility around dialog focus management and drag-and-drop keyboard alternatives
+- Add unit, integration, and end-to-end tests
+- Improve dialog accessibility and keyboard support for drag-and-drop workflows
+- Add pagination or virtualization for very large document libraries
 
-### P1 - Documentation accuracy
+### P1 - Documentation and operations
 
-- Update root `README.md` to match actual implementation status
-- Update `web/README.md` (still describes old local-file-storage behavior)
-- Add concise API docs for `/api/v1` (auth format, response shapes, error codes)
+- Keep Supabase migrations in sync with deployed environments
+- Document deployment and migration order more explicitly
+- Add example API clients or curl snippets for common `/api/v1` workflows
 
 ### P2 - Feature expansion
 
 - Document versioning and rollback
-- Tagging UI using existing `tags` and `document_tags` schema
-- Public/time-limited share links
-- Image gallery/lightbox preview and richer media metadata
-- Optional OCR pipeline for image/PDF text extraction
+- Tagging UI using existing `tags` and `document_tags` tables
+- Share links for individual documents
+- Image gallery/lightbox improvements
+- OCR for scanned PDFs and images
 
 ---
 
 ## Known Issues
 
-- Lint currently fails (see Corrections section).
-- Analytics "view" events are not currently emitted.
-- Search mode does not include folder context in returned rows.
-- API key external-client flow needs hardening/verification.
+- No blocking issues identified in the current reviewed codebase
+- `supabase/search_folder_context_migration.sql` must be applied in environments that were created before the search-folder update
 
 ---
 
 ## Current Assessment
 
-DocForge has moved beyond MVP and includes substantial Phase 3 functionality, including folder organization, exports, analytics UI, and API key management. Folder organization is complete in core behavior. The remaining work is mostly production hardening, correctness polish, and test/documentation maturity rather than missing baseline features.
+DocForge is now a solid Phase 3 document vault with folder organization, previews, exports, analytics, and external API access. The highest-value remaining work is operational hardening, testing, and selective feature expansion rather than core workflow completion.

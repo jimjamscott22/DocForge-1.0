@@ -1,143 +1,148 @@
 # DocForge-1.0
 
-DocForge-1.0 is a full-stack document management platform designed for developers and technical teams.  
-It provides structured storage, versioning, and fast retrieval of technical documentation such as API specs, design notes, and engineering references.
-
-The goal is simple: **never lose knowledge again**.
+DocForge is a full-stack document vault for developers and technical teams. It combines Supabase auth/storage, full-text search, folder organization, previews, analytics, and API-key access in a single Next.js app.
 
 ---
 
-## 🚀 Features
+## Current Feature Set
 
-### Core Functionality
-- Secure document upload and storage
-- Organize documents by language, framework, category, and tags
-- Full-text search and advanced filtering
-- Document version tracking and change history
-- Role-based user access (admin / user)
-
-### Advanced Capabilities
-- Collaborative editing
-- Export documents to PDF or Markdown
-- API documentation integration
-- Analytics dashboard for document usage
+- Google and GitHub OAuth via Supabase Auth
+- Upload to Supabase Storage with progress, size checks, and file-type validation
+- Full-text search over titles and extracted text content
+- Document table with sorting, filtering, bulk open, and bulk delete
+- Nested folders with drag-and-drop moves and folder filtering
+- Text/Markdown preview and in-app PDF preview
+- Export helpers for PDF files and Markdown-compatible text files
+- Analytics dashboard for views, previews, downloads, exports, and storage totals
+- API key management plus `/api/v1/documents` endpoints for external access
 
 ---
 
-## 🧱 Tech Stack
+## Stack
 
-### Frontend
-- React (TypeScript)
-- Tailwind CSS or Material UI
-- Responsive, component-based UI
-
-### Backend
-- Node.js (Express) **or** Python (FastAPI / Django)
-- RESTful API architecture
-- JWT-based authentication
-
-### Database & Storage
-- PostgreSQL or MongoDB
-- Redis for caching
-- Local file storage or cloud storage (AWS S3 / GCS)
-
-## 🛠️ Development Roadmap
-
-### Phase 1 — MVP ✅ Complete
-- User authentication
-- Document upload and viewing
-- Basic search
-- File storage integration
-
-### Phase 2 — Enhanced Features ✅ Complete
-- Advanced search and filters
-- Tagging system
-- Document versioning
-- User roles
-
-### Phase 3 — Advanced Features ✅ Complete
-- Folder organization with drag-and-drop
-- Export tools (PDF signed URL, Markdown download)
-- Analytics dashboard (views, downloads, exports, charts)
-- API key management + public REST API (`/api/v1`)
+- Frontend: Next.js 16, React 19, TypeScript, Tailwind CSS v4
+- Backend: Next.js App Router APIs
+- Database/Auth/Storage: Supabase PostgreSQL, Auth, Storage, and RLS
+- Search: PostgreSQL full-text search with extracted PDF/text content
 
 ---
 
-## 🔐 Security Considerations
-- Input validation and sanitization
-- File type and size restrictions
-- Rate limiting
-- Secure authentication with JWT or OAuth
-- Proper access control enforcement
+## Project Layout
+
+- `web/` - Next.js application
+- `supabase/schema.sql` - base schema plus Phase 3 additions
+- `supabase/folder_migration.sql` - folder migration
+- `supabase/analytics_migration.sql` - analytics migration
+- `supabase/api_keys_migration.sql` - API key migration
+- `supabase/search_folder_context_migration.sql` - search RPC update for `folder_id`
 
 ---
 
-## ⚡ Performance & Scalability
-- Indexed database queries
-- Redis caching for frequent access
-- Pagination for large datasets
-- CDN support for static assets
-- Architecture designed to support future microservices
+## Local Setup
+
+1. Clone the repository and move into `web/`
+
+```bash
+git clone https://github.com/yourusername/DocForge-1.0.git
+cd DocForge-1.0/web
+```
+
+2. Install dependencies
+
+```bash
+npm install
+```
+
+3. Copy `web/env.example` to `web/.env.local` and fill in:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+4. In Supabase, enable Google and/or GitHub OAuth and add:
+
+- `http://localhost:3000/auth/callback`
+
+5. Run the SQL in `supabase/schema.sql`
+
+6. If your database was created before the latest search update, also run:
+
+- `supabase/search_folder_context_migration.sql`
+
+7. Start the app
+
+```bash
+npm run dev
+```
 
 ---
 
-## 🧪 Testing
-- Unit tests for backend logic
-- Integration tests for API endpoints
-- Frontend component testing
-- Security and performance testing before deployment
+## Storage and Search Notes
+
+- Files are stored in Supabase Storage bucket `DocForgeVault`
+- Max upload size is 50 MB
+- Supported upload types: PDF, TXT, MD, DOC, DOCX, PNG, JPG, JPEG, GIF
+- Search uses PostgreSQL full-text search over `title` and extracted `content_text`
+- Text extraction currently supports text/markdown and PDF content
 
 ---
 
-## 📦 Installation (Development)
+## Public API
 
-### Phase 1 MVP Setup
+Base path: `/api/v1/documents`
 
-1. **Clone and navigate to the web directory**
-   ```bash
-   git clone https://github.com/yourusername/DocForge-1.0.git
-   cd DocForge-1.0/web
-   ```
+Auth header:
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+```text
+Authorization: Bearer <your_api_key>
+```
 
-3. **Configure Supabase**
-   - Create a new project at [supabase.com](https://supabase.com)
-   - Copy `env.example` to `.env.local`
-   - Add your Supabase credentials:
-     ```env
-     NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-     NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-     SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-     ```
+Endpoints:
 
-4. **Enable OAuth providers in Supabase**
-   - Go to Authentication > Providers in your Supabase dashboard
-   - Enable Google and/or GitHub OAuth
-   - Add redirect URL: `http://localhost:3000/auth/callback`
-   - For production, add your production URL callback
+- `GET /api/v1/documents` - list document metadata
+- `GET /api/v1/documents/:id` - fetch one document record
+- `GET /api/v1/documents/:id/download` - get a signed download URL
 
-5. **Run database migrations**
-   - Open Supabase SQL Editor
-   - Copy and paste the contents of `supabase/schema.sql`
-   - Execute the SQL to create tables, indexes, and RLS policies
+Typical list response:
 
-6. **Start the development server**
-   ```bash
-   npm run dev
-   ```
-   
-7. **Open the app**
-   - Navigate to [http://localhost:3000](http://localhost:3000)
-   - Sign in with Google or GitHub
-   - Upload documents and test search functionality
+```json
+{
+  "documents": [
+    {
+      "id": "uuid",
+      "title": "API Spec",
+      "storage_path": "user-id/file.pdf",
+      "file_size_bytes": 12345,
+      "created_at": "2026-03-09T00:00:00.000Z",
+      "updated_at": "2026-03-09T00:00:00.000Z",
+      "folder_id": "uuid-or-null"
+    }
+  ]
+}
+```
 
-### Important Notes for Phase 1
+Common error responses:
 
-- **Local Storage**: Files are saved to `web/public/uploads/` for development. This folder is created automatically.
-- **File Limits**: Maximum 10MB per file. Allowed types: PDF, TXT, MD, DOC, DOCX, PNG, JPG, JPEG, GIF.
-- **Row-Level Security**: Documents are scoped to the authenticated user via Supabase RLS policies.
-- **Production**: For production deployment, replace local file storage with Supabase Storage or S3.
+```json
+{ "error": "Missing or invalid Authorization header" }
+```
+
+```json
+{ "error": "Invalid API key" }
+```
+
+```json
+{ "error": "Document not found" }
+```
+
+---
+
+## Next Priorities
+
+- rate limiting for sensitive endpoints
+- automated tests
+- audit logging
+- pagination/virtualization for large vaults
+- versioning and sharing features
