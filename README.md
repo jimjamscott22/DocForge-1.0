@@ -2,6 +2,8 @@
 
 DocForge is a full-stack document vault for developers and technical teams. It combines Supabase auth/storage, full-text search, folder organization, previews, analytics, and API-key access in a single Next.js app.
 
+Contributor and agent guidance lives in [AGENTS.md](/home/jimjamscozz22/Desktop/GitHub/repo/DocForge-1.0/AGENTS.md). Read that first for repo conventions, environment setup details, and the current frontend direction.
+
 ---
 
 ## Current Feature Set
