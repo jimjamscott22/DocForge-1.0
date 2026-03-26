@@ -22,6 +22,8 @@ type PageProps = {
 type SortOption = "date_desc" | "date_asc" | "name_asc" | "name_desc" | "size_desc" | "size_asc";
 type FileFilterOption = "all" | "pdf" | "img" | "txt" | "doc" | "other";
 
+const formatDocumentCount = (count: number) => `${count} document${count === 1 ? "" : "s"}`;
+
 const getFileTypeFromPath = (path: string): FileFilterOption => {
   const ext = path.split(".").pop()?.toLowerCase() ?? "";
   if (["pdf"].includes(ext)) return "pdf";
@@ -126,6 +128,13 @@ export default async function Home({ searchParams }: PageProps) {
   const { user, documents } = await getData(search, sort, fileType);
 
   const isAuthed = Boolean(user);
+  const totalStorageBytes = documents.reduce((total, document) => total + (document.file_size_bytes ?? 0), 0);
+  const totalStorageMb = totalStorageBytes > 0 ? `${(totalStorageBytes / (1024 * 1024)).toFixed(1)} MB stored` : "No storage used yet";
+  const statusChips = [
+    search ? `Query: ${search}` : "All documents",
+    fileType === "all" ? "All file types" : `Filtered: ${fileType.toUpperCase()}`,
+    totalStorageMb,
+  ];
 
   return (
     <main className="noise-bg relative min-h-screen bg-stone-900 text-stone-200 antialiased">
@@ -260,54 +269,96 @@ export default async function Home({ searchParams }: PageProps) {
               </section>
 
               <section className="animate-fade-up lg:col-span-2" style={{ animationDelay: "0.2s" }}>
-                <div className="card-glow rounded-xl border border-stone-700/50 bg-stone-850/60 p-6 backdrop-blur-sm">
-                  <form className="flex flex-wrap gap-2" method="get">
-                    <div className="relative">
-                      <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                      <input
-                        type="text"
-                        name="q"
-                        defaultValue={search}
-                        placeholder="Search documents..."
-                        className="focus-ring w-full rounded-lg border border-stone-700/50 bg-stone-900/80 py-2 pl-9 pr-3 text-sm text-stone-200 placeholder-stone-500 transition focus:border-forge-500/40 focus:outline-none sm:w-56"
-                      />
+                <div className="card-glow overflow-hidden rounded-xl border border-stone-700/50 bg-stone-850/60 backdrop-blur-sm">
+                  <div className="border-b border-stone-700/40 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.14),transparent_34%),linear-gradient(180deg,rgba(28,25,23,0.3),rgba(28,25,23,0))] p-6">
+                    <div className="flex flex-col gap-5">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div className="space-y-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-forge-400">
+                            Workspace Controls
+                          </p>
+                          <h2 className="font-display text-2xl text-stone-50">
+                            {formatDocumentCount(documents.length)}
+                          </h2>
+                          <p className="max-w-2xl text-sm leading-relaxed text-stone-400">
+                            Filter by text, file type, and sort order before moving into the document workspace below.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {statusChips.map((chip) => (
+                            <span
+                              key={chip}
+                              className="rounded-full border border-stone-700/60 bg-stone-950/40 px-3 py-1.5 text-xs font-medium text-stone-300"
+                            >
+                              {chip}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <form className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_auto_auto_auto]" method="get">
+                        <div className="relative">
+                          <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                          <input
+                            type="text"
+                            name="q"
+                            defaultValue={search}
+                            placeholder="Search titles and indexed document content..."
+                            className="focus-ring w-full rounded-lg border border-stone-700/50 bg-stone-900/80 py-3 pl-9 pr-3 text-sm text-stone-200 placeholder-stone-500 transition focus:border-forge-500/40 focus:outline-none"
+                          />
+                        </div>
+                        <select
+                          name="sort"
+                          defaultValue={sort}
+                          className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-3 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
+                          aria-label="Sort documents"
+                        >
+                          <option value="date_desc">Newest</option>
+                          <option value="date_asc">Oldest</option>
+                          <option value="name_asc">Name (A-Z)</option>
+                          <option value="name_desc">Name (Z-A)</option>
+                          <option value="size_desc">Size (Largest)</option>
+                          <option value="size_asc">Size (Smallest)</option>
+                        </select>
+                        <select
+                          name="type"
+                          defaultValue={fileType}
+                          className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-3 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
+                          aria-label="Filter by file type"
+                        >
+                          <option value="all">All types</option>
+                          <option value="pdf">PDF</option>
+                          <option value="img">Images</option>
+                          <option value="txt">Text / Markdown</option>
+                          <option value="doc">Word Docs</option>
+                          <option value="other">Other</option>
+                        </select>
+                        <button
+                          type="submit"
+                          className="focus-ring rounded-lg bg-forge-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-forge-500"
+                        >
+                          Search
+                        </button>
+                      </form>
                     </div>
-                    <button
-                      type="submit"
-                      className="focus-ring rounded-lg bg-forge-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-forge-500"
-                    >
-                      Search
-                    </button>
-                    <select
-                      name="sort"
-                      defaultValue={sort}
-                      className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-2 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
-                      aria-label="Sort documents"
-                    >
-                      <option value="date_desc">Newest</option>
-                      <option value="date_asc">Oldest</option>
-                      <option value="name_asc">Name (A-Z)</option>
-                      <option value="name_desc">Name (Z-A)</option>
-                      <option value="size_desc">Size (Largest)</option>
-                      <option value="size_asc">Size (Smallest)</option>
-                    </select>
-                    <select
-                      name="type"
-                      defaultValue={fileType}
-                      className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-2 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
-                      aria-label="Filter by file type"
-                    >
-                      <option value="all">All types</option>
-                      <option value="pdf">PDF</option>
-                      <option value="img">Images</option>
-                      <option value="txt">Text / Markdown</option>
-                      <option value="doc">Word Docs</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </form>
-                  <div className="mt-4">
+                  </div>
+                  <div className="border-t border-stone-700/30 px-6 py-4">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">
+                          Reference Rail
+                        </p>
+                        <p className="text-sm text-stone-400">
+                          External documentation links for common frontend, backend, and research tasks.
+                        </p>
+                      </div>
+                      <p className="text-xs text-stone-500">
+                        Opens in a new tab
+                      </p>
+                    </div>
+                  </div>
+                  <div className="p-6 pt-5">
                     <ReferenceLinksSidebar />
                   </div>
                 </div>

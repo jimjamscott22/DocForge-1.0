@@ -34,6 +34,18 @@ body {
   font-family: var(--font-dm-sans), system-ui, sans-serif;
 }
 
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(circle at top left, rgba(249, 115, 22, 0.12), transparent 26%),
+    radial-gradient(circle at 85% 12%, rgba(251, 191, 36, 0.08), transparent 24%),
+    linear-gradient(180deg, #120f0d 0%, #1c1917 42%, #0c0a09 100%);
+}
+
 /* Noise texture overlay */
 .noise-bg::before {
   content: "";

@@ -38,6 +38,9 @@ const getFileIcon = (path: string) => {
   return "file";
 };
 
+const formatDate = (value: string) =>
+  new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
+
 const FileTypeIcon = ({ type }: { type: string }) => {
   const colors: Record<string, string> = {
     pdf: "text-red-400 bg-red-400/10",
@@ -284,8 +287,87 @@ export default function DocumentTable({
         </div>
       )}
 
+      <div className="mb-3 flex items-center justify-between rounded-lg border border-stone-700/40 bg-stone-900/30 px-4 py-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">Results</p>
+          <p className="mt-1 text-sm text-stone-300">
+            {documents.length} document{documents.length !== 1 ? "s" : ""} ready for review
+          </p>
+        </div>
+        <p className="hidden text-xs text-stone-500 sm:block">
+          Select rows for bulk open, move, or delete.
+        </p>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {documents.map((doc) => (
+          <article
+            key={doc.id}
+            draggable
+            onDragStart={(e) => e.dataTransfer.setData("text/plain", doc.id)}
+            className={`rounded-xl border px-4 py-4 transition ${
+              selectedIds.has(doc.id)
+                ? "border-forge-500/35 bg-forge-500/[0.08]"
+                : "border-stone-700/40 bg-stone-900/35"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={selectedIds.has(doc.id)}
+                onChange={() => toggleSelect(doc.id)}
+                className="mt-1 h-4 w-4 cursor-pointer rounded border-stone-600 accent-forge-500"
+                aria-label={`Select ${doc.title}`}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <FileTypeIcon type={getFileIcon(doc.storage_path)} />
+                  <h3 className="truncate text-sm font-semibold text-stone-100">{doc.title}</h3>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-stone-400">
+                  <span className="rounded-full border border-stone-700/60 bg-stone-950/50 px-2.5 py-1">
+                    {formatBytes(doc.file_size_bytes)}
+                  </span>
+                  <span className="rounded-full border border-stone-700/60 bg-stone-950/50 px-2.5 py-1">
+                    {formatDate(doc.created_at)}
+                  </span>
+                </div>
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  {(() => {
+                    const ext = doc.storage_path.split(".").pop()?.toLowerCase() ?? "";
+                    if (ext === "pdf") return (
+                      <PdfPreviewModal
+                        documentId={doc.id}
+                        documentTitle={doc.title}
+                      />
+                    );
+                    if (["txt", "md"].includes(ext)) return (
+                      <TextPreviewModal
+                        documentId={doc.id}
+                        documentTitle={doc.title}
+                      />
+                    );
+                    return null;
+                  })()}
+                  <ExportButton
+                    documentId={doc.id}
+                    storagePath={doc.storage_path}
+                    documentTitle={doc.title}
+                  />
+                  <ViewDocumentButton documentId={doc.id} />
+                  <DeleteDocumentButton
+                    documentId={doc.id}
+                    documentTitle={doc.title}
+                  />
+                </div>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
       {/* Document table */}
-      <div className="overflow-hidden rounded-lg border border-stone-700/40">
+      <div className="hidden overflow-hidden rounded-lg border border-stone-700/40 md:block">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b border-stone-700/40 bg-stone-900/60">
@@ -340,9 +422,7 @@ export default function DocumentTable({
                   {formatBytes(doc.file_size_bytes)}
                 </td>
                 <td className="hidden px-4 py-3.5 text-stone-400 md:table-cell">
-                  {new Intl.DateTimeFormat("en", {
-                    dateStyle: "medium",
-                  }).format(new Date(doc.created_at))}
+                  {formatDate(doc.created_at)}
                 </td>
                 <td className="px-4 py-3.5 text-right">
                   <div className="flex items-center justify-end gap-2">

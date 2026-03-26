@@ -132,11 +132,25 @@ export default function DashboardClient({ documents }: DashboardClientProps) {
     : documents.filter((d) => d.folder_id === selectedFolderId);
 
   const selectedFolderName = folders.find((f) => f.id === selectedFolderId)?.name ?? null;
+  const rootDocumentCount = documents.filter((document) => !document.folder_id).length;
+  const folderCount = folders.length;
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
       {/* Left sidebar */}
-      <section className="animate-fade-up lg:col-span-1" style={{ animationDelay: "0.15s" }}>
+      <section className="animate-fade-up lg:col-span-1 lg:sticky lg:top-6 lg:self-start" style={{ animationDelay: "0.15s" }}>
+        <div className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-stone-700/50 bg-stone-700/50">
+          <div className="bg-stone-900/50 p-4 backdrop-blur-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">Folders</p>
+            <p className="mt-2 font-display text-2xl text-stone-50">{folderCount}</p>
+            <p className="mt-1 text-xs text-stone-500">Organized spaces in your vault</p>
+          </div>
+          <div className="bg-stone-900/50 p-4 backdrop-blur-sm">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">Root Files</p>
+            <p className="mt-2 font-display text-2xl text-stone-50">{rootDocumentCount}</p>
+            <p className="mt-1 text-xs text-stone-500">Documents not inside a folder</p>
+          </div>
+        </div>
         {/* Folder tree */}
         <div className="card-glow rounded-xl border border-stone-700/50 bg-stone-850/60 p-4 backdrop-blur-sm">
           <button
@@ -229,33 +243,46 @@ export default function DashboardClient({ documents }: DashboardClientProps) {
 
       {/* Documents section */}
       <section className="animate-fade-up lg:col-span-2" style={{ animationDelay: "0.2s" }}>
-        <div className="card-glow rounded-xl border border-stone-700/50 bg-stone-850/60 p-6 backdrop-blur-sm">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-forge-500/15">
-              <svg className="h-4 w-4 text-forge-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-display text-lg text-stone-50">Documents</h2>
-                {selectedFolderName && (
-                  <>
-                    <span className="text-stone-600">/</span>
-                    <span className="text-sm font-medium text-forge-400">{selectedFolderName}</span>
-                  </>
-                )}
+        <div className="card-glow overflow-hidden rounded-xl border border-stone-700/50 bg-stone-850/60 backdrop-blur-sm">
+          <div className="border-b border-stone-700/40 bg-[linear-gradient(135deg,rgba(249,115,22,0.1),transparent_40%),linear-gradient(180deg,rgba(12,10,9,0.25),rgba(12,10,9,0))] px-6 py-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-forge-500/15 ring-1 ring-forge-500/20">
+                  <svg className="h-5 w-5 text-forge-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="font-display text-xl text-stone-50">Documents</h2>
+                    {selectedFolderName && (
+                      <span className="rounded-full border border-forge-500/30 bg-forge-500/10 px-2.5 py-1 text-xs font-semibold text-forge-300">
+                        {selectedFolderName}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-stone-400">
+                    {filteredDocuments.length} file{filteredDocuments.length !== 1 ? "s" : ""}
+                    {selectedFolderName ? ` currently visible in ${selectedFolderName}` : " currently visible across your vault"}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-stone-500">
-                {filteredDocuments.length} file{filteredDocuments.length !== 1 ? "s" : ""}
-                {selectedFolderName ? ` in ${selectedFolderName}` : " in your vault"}
-              </p>
+              <div className="flex flex-wrap gap-2 text-xs text-stone-400">
+                <span className="rounded-full border border-stone-700/60 bg-stone-950/40 px-3 py-1.5">
+                  Drag rows into folders
+                </span>
+                <span className="rounded-full border border-stone-700/60 bg-stone-950/40 px-3 py-1.5">
+                  Bulk actions after selection
+                </span>
+              </div>
             </div>
           </div>
-          <DocumentTable
-            documents={filteredDocuments}
-            onMoveToFolder={handleMoveToFolder}
-          />
+          <div className="p-6">
+            <DocumentTable
+              documents={filteredDocuments}
+              onMoveToFolder={handleMoveToFolder}
+            />
+          </div>
         </div>
       </section>
 

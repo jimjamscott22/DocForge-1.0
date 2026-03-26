@@ -139,104 +139,110 @@ export default function ReferenceLinksSidebar() {
     return docCategories.filter((category) => category.id === activeCategory);
   }, [activeCategory]);
 
+  const visibleLinkCount = displayedCategories.reduce((total, category) => total + category.links.length, 0);
+
   return (
-    <div className="rounded-xl border border-stone-700/50 bg-stone-850/40 p-5 backdrop-blur-sm">
-      <div className="mb-4 flex items-center gap-2">
-        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-forge-500/15">
-          <svg
-            className="h-3.5 w-3.5 text-forge-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-            />
-          </svg>
-        </div>
-        <div>
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+    <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="space-y-4 border-b border-stone-700/40 pb-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-stone-500">
             Doc Discovery
-          </h3>
+          </p>
+          <p className="text-sm leading-relaxed text-stone-400">
+            Keep common references within reach while reviewing and organizing files.
+          </p>
         </div>
-      </div>
 
-      <p className="mb-4 text-xs leading-relaxed text-stone-400">
-        Browse curated references by category and keep your research workflow inside DocForge.
-      </p>
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-stone-700/40 bg-stone-700/40">
+          <div className="bg-stone-900/40 px-3 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-stone-500">Visible</p>
+            <p className="mt-1 text-lg font-semibold text-stone-100">{visibleLinkCount}</p>
+          </div>
+          <div className="bg-stone-900/40 px-3 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-stone-500">Library</p>
+            <p className="mt-1 text-lg font-semibold text-stone-100">{allLinkCount}</p>
+          </div>
+        </div>
 
-      <div className="mb-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => setActiveCategory("all")}
-          className={`rounded-full border px-2.5 py-1 text-xs transition ${
-            activeCategory === "all"
-              ? "border-forge-500/60 bg-forge-500/20 text-forge-300"
-              : "border-stone-700/70 bg-stone-900/70 text-stone-400 hover:border-stone-600 hover:text-stone-200"
-          }`}
-        >
-          All ({allLinkCount})
-        </button>
-        {docCategories.map((category) => (
+        <div className="flex flex-wrap gap-2">
           <button
-            key={category.id}
             type="button"
-            onClick={() => setActiveCategory(category.id)}
+            onClick={() => setActiveCategory("all")}
             className={`rounded-full border px-2.5 py-1 text-xs transition ${
-              activeCategory === category.id
-                ? "border-forge-500/60 bg-forge-500/20 text-forge-300"
-                : "border-stone-700/70 bg-stone-900/70 text-stone-400 hover:border-stone-600 hover:text-stone-200"
+              activeCategory === "all"
+                ? "border-forge-500/60 bg-forge-500/15 text-forge-300"
+                : "border-stone-700/70 bg-stone-950/40 text-stone-400 hover:border-stone-600 hover:text-stone-200"
             }`}
           >
-            {category.label} ({category.links.length})
+            All ({allLinkCount})
           </button>
-        ))}
+          {docCategories.map((category) => (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => setActiveCategory(category.id)}
+              className={`rounded-full border px-2.5 py-1 text-xs transition ${
+                activeCategory === category.id
+                  ? "border-forge-500/60 bg-forge-500/15 text-forge-300"
+                  : "border-stone-700/70 bg-stone-950/40 text-stone-400 hover:border-stone-600 hover:text-stone-200"
+              }`}
+            >
+              {category.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         {displayedCategories.map((section) => (
-          <div key={section.id} className="rounded-lg border border-stone-700/50 bg-stone-900/40 p-3">
-            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">
-              {section.label}
-            </h4>
-            <ul className="space-y-2">
+          <section key={section.id} className="space-y-3">
+            <div className="flex items-end justify-between border-b border-stone-700/40 pb-2">
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-500">
+                  {section.label}
+                </h4>
+                <p className="mt-1 text-xs text-stone-500">
+                  {section.links.length} reference{section.links.length === 1 ? "" : "s"}
+                </p>
+              </div>
+            </div>
+            <ul className="divide-y divide-stone-800/80 border-t border-stone-800/80">
               {section.links.map((link) => (
                 <li key={link.url}>
                   <a
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group block rounded-md border border-transparent px-2 py-2 transition hover:border-stone-700/70 hover:bg-stone-800/40"
+                    className="group grid gap-3 py-3 transition sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-medium text-stone-200 group-hover:text-forge-300">
-                        {link.name}
-                      </span>
-                      <svg
-                        className="h-3 w-3 shrink-0 text-stone-600 transition group-hover:text-forge-400"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-stone-200 transition group-hover:text-forge-300">
+                          {link.name}
+                        </span>
+                        <svg
+                          className="h-3 w-3 shrink-0 text-stone-600 transition group-hover:translate-x-0.5 group-hover:text-forge-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                          />
+                        </svg>
+                      </div>
+                      <p className="mt-1 max-w-2xl text-sm leading-relaxed text-stone-500">
+                        {link.description}
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs leading-relaxed text-stone-500">
-                      {link.description}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 sm:justify-end">
                       {link.tags.map((tag) => (
                         <span
                           key={`${link.url}-${tag}`}
-                          className="rounded-full border border-stone-700/80 bg-stone-900/70 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-stone-500"
+                          className="rounded-full border border-stone-700/80 bg-stone-950/40 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-stone-500"
                         >
                           {tag}
                         </span>
@@ -246,7 +252,7 @@ export default function ReferenceLinksSidebar() {
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         ))}
       </div>
     </div>
