@@ -343,30 +343,38 @@ export default async function Home({ searchParams }: PageProps) {
                       </form>
                     </div>
                   </div>
-                  <div className="border-t border-stone-700/30 px-6 py-4">
-                    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">
-                          Reference Rail
-                        </p>
-                        <p className="text-sm text-stone-400">
-                          External documentation links for common frontend, backend, and research tasks.
-                        </p>
-                      </div>
-                      <p className="text-xs text-stone-500">
-                        Opens in a new tab
-                      </p>
-                    </div>
-                  </div>
-                  <div className="p-6 pt-5">
-                    <ReferenceLinksSidebar />
-                  </div>
+
                 </div>
               </section>
             </div>
 
             {/* Folder tree + documents grid */}
             <DashboardClient documents={documents} />
+
+            {/* Reference Links Section */}
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+              <section className="animate-fade-up lg:col-span-1" style={{ animationDelay: "0.25s" }}>
+                <div className="card-glow rounded-xl border border-stone-700/50 bg-stone-850/60 p-6 backdrop-blur-sm lg:sticky lg:top-6">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-forge-500/15 ring-1 ring-forge-500/20">
+                    <svg className="h-5 w-5 text-forge-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h2 className="font-display text-xl text-stone-50">Reference Rail</h2>
+                  <p className="mt-3 text-sm leading-relaxed text-stone-400">
+                    External documentation links for common frontend, backend, and research tasks.
+                  </p>
+                  <p className="mt-4 text-xs font-medium text-stone-500">
+                    Opens in a new tab
+                  </p>
+                </div>
+              </section>
+              <section className="animate-fade-up lg:col-span-2" style={{ animationDelay: "0.3s" }}>
+                <div className="card-glow rounded-xl border border-stone-700/50 bg-stone-850/60 p-6 backdrop-blur-sm">
+                  <ReferenceLinksSidebar />
+                </div>
+              </section>
+            </div>
           </div>
         )}
 
