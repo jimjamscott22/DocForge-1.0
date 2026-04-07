@@ -21,6 +21,7 @@ type PageProps = {
 
 type SortOption = "date_desc" | "date_asc" | "name_asc" | "name_desc" | "size_desc" | "size_asc";
 type FileFilterOption = "all" | "pdf" | "img" | "txt" | "doc" | "other";
+type EnvironmentOption = "production" | "staging" | "development";
 
 const formatDocumentCount = (count: number) => `${count} document${count === 1 ? "" : "s"}`;
 
@@ -117,6 +118,7 @@ export default async function Home({ searchParams }: PageProps) {
   const search = typeof params?.q === "string" ? params.q : "";
   const sortParam = typeof params?.sort === "string" ? params.sort : "date_desc";
   const fileTypeParam = typeof params?.type === "string" ? params.type : "all";
+  const envParam = typeof params?.env === "string" ? params.env : "production";
 
   const sort: SortOption = ["date_desc", "date_asc", "name_asc", "name_desc", "size_desc", "size_asc"].includes(sortParam)
     ? (sortParam as SortOption)
@@ -124,6 +126,9 @@ export default async function Home({ searchParams }: PageProps) {
   const fileType: FileFilterOption = ["all", "pdf", "img", "txt", "doc", "other"].includes(fileTypeParam)
     ? (fileTypeParam as FileFilterOption)
     : "all";
+  const environment: EnvironmentOption = ["production", "staging", "development"].includes(envParam)
+    ? (envParam as EnvironmentOption)
+    : "production";
 
   const { user, documents } = await getData(search, sort, fileType);
 
@@ -131,6 +136,7 @@ export default async function Home({ searchParams }: PageProps) {
   const totalStorageBytes = documents.reduce((total, document) => total + (document.file_size_bytes ?? 0), 0);
   const totalStorageMb = totalStorageBytes > 0 ? `${(totalStorageBytes / (1024 * 1024)).toFixed(1)} MB stored` : "No storage used yet";
   const statusChips = [
+    `Environment: ${environment}`,
     search ? `Query: ${search}` : "All documents",
     fileType === "all" ? "All file types" : `Filtered: ${fileType.toUpperCase()}`,
     totalStorageMb,
@@ -283,6 +289,9 @@ export default async function Home({ searchParams }: PageProps) {
                           <p className="max-w-2xl text-sm leading-relaxed text-stone-400">
                             Filter by text, file type, and sort order before moving into the document workspace below.
                           </p>
+                          <p className="text-xs text-stone-500">
+                            Environment selection keeps your workspace context pinned while you review documents.
+                          </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           {statusChips.map((chip) => (
@@ -295,7 +304,7 @@ export default async function Home({ searchParams }: PageProps) {
                           ))}
                         </div>
                       </div>
-                      <form className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_auto_auto_auto]" method="get">
+                      <form className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_auto_auto_auto_auto]" method="get">
                         <div className="relative">
                           <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -333,6 +342,16 @@ export default async function Home({ searchParams }: PageProps) {
                           <option value="txt">Text / Markdown</option>
                           <option value="doc">Word Docs</option>
                           <option value="other">Other</option>
+                        </select>
+                        <select
+                          name="env"
+                          defaultValue={environment}
+                          className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-3 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
+                          aria-label="Switch environment"
+                        >
+                          <option value="production">Production</option>
+                          <option value="staging">Staging</option>
+                          <option value="development">Development</option>
                         </select>
                         <button
                           type="submit"
