@@ -137,7 +137,11 @@ body::before {
   outline-offset: 2px;
 }
 
+/* Reset dialog UA text-align */
+dialog { text-align: left; }
+
 /* Markdown preview typography */
+.markdown-preview { text-align: left; }
 .markdown-preview h1 { font-size: 1.5rem; font-weight: 700; color: #f5f5f4; margin-top: 1.5rem; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(68, 64, 60, 0.5); }
 .markdown-preview h2 { font-size: 1.25rem; font-weight: 700; color: #f5f5f4; margin-top: 1.25rem; margin-bottom: 0.5rem; padding-bottom: 0.375rem; border-bottom: 1px solid rgba(68, 64, 60, 0.3); }
 .markdown-preview h3 { font-size: 1.1rem; font-weight: 600; color: #e7e5e4; margin-top: 1rem; margin-bottom: 0.5rem; }

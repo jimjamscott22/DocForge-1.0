@@ -86,7 +86,7 @@ export default function PdfPreviewModal({
       <dialog
         ref={dialogRef}
         onClose={handleClose}
-        className="fixed inset-0 z-50 m-auto h-[90vh] w-full max-w-5xl rounded-xl border border-stone-700/50 bg-stone-900 p-0 text-stone-200 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
+        className="fixed inset-0 z-50 m-auto h-[90vh] w-full max-w-5xl rounded-xl border border-stone-700/50 bg-stone-900 p-0 text-left text-stone-200 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-stone-700/40 px-5 py-3">
