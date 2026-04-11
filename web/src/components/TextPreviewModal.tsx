@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { PrismAsyncLight as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 interface TextPreviewModalProps {
   documentId: string;
@@ -176,14 +178,59 @@ export default function TextPreviewModal({
             <>
               {extension === "md" ? (
                 <div className="markdown-preview p-5 text-sm leading-relaxed text-stone-300">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                      code({ className, children, node: _node, ...rest }: React.HTMLAttributes<HTMLElement> & { node?: unknown }) {
+                        const match = /language-(\w+)/.exec(className || "");
+                        return match ? (
+                          <div className="my-4 overflow-hidden rounded-lg border border-stone-700/50 bg-[#1E1E1E]">
+                            <SyntaxHighlighter
+                              PreTag="div"
+                              language={match[1]}
+                              style={vscDarkPlus}
+                              customStyle={{
+                                margin: 0,
+                                padding: "1rem",
+                                backgroundColor: "transparent",
+                              }}
+                              codeTagProps={{ className: "text-sm" }}
+                            >
+                              {String(children).replace(/\n$/, "")}
+                            </SyntaxHighlighter>
+                          </div>
+                        ) : (
+                          <code
+                            {...rest}
+                            className={`${className || ""} rounded bg-stone-800 px-1.5 py-0.5 font-mono text-[13px] text-stone-200`}
+                          >
+                            {children}
+                          </code>
+                        );
+                      },
+                    }}
+                  >
                     {content}
                   </ReactMarkdown>
                 </div>
               ) : (
-                <pre className="whitespace-pre-wrap break-words p-5 font-mono text-sm leading-relaxed text-stone-300">
-                  {content}
-                </pre>
+                <div className="text-sm">
+                  <SyntaxHighlighter
+                    style={vscDarkPlus}
+                    language={extension && extension !== "txt" ? extension : "text"}
+                    PreTag="div"
+                    showLineNumbers={true}
+                    customStyle={{
+                      margin: 0,
+                      padding: "1.25rem",
+                      backgroundColor: "transparent",
+                    }}
+                    codeTagProps={{ className: "text-sm leading-relaxed" }}
+                  >
+                    {content}
+                  </SyntaxHighlighter>
+                </div>
               )}
               {truncated && (
                 <div className="border-t border-stone-700/40 px-5 py-3 text-center text-xs text-stone-500">
