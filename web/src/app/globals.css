@@ -7,25 +7,177 @@
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-dm-serif);
 
-  --color-forge-50: #fff8f0;
-  --color-forge-100: #ffedd5;
-  --color-forge-200: #fed7aa;
-  --color-forge-300: #fdba74;
-  --color-forge-400: #fb923c;
-  --color-forge-500: #f97316;
-  --color-forge-600: #ea580c;
-  --color-forge-700: #c2410c;
+  --color-forge-50: var(--accent-50);
+  --color-forge-100: var(--accent-100);
+  --color-forge-200: var(--accent-200);
+  --color-forge-300: var(--accent-300);
+  --color-forge-400: var(--accent-400);
+  --color-forge-500: var(--accent-500);
+  --color-forge-600: var(--accent-600);
+  --color-forge-700: var(--accent-700);
 
-  --color-stone-750: #352f2b;
-  --color-stone-850: #231f1c;
-  --color-stone-900: #1c1917;
-  --color-stone-925: #171412;
-  --color-stone-950: #0c0a09;
+  --color-stone-750: var(--surface-750);
+  --color-stone-850: var(--surface-850);
+  --color-stone-900: var(--surface-900);
+  --color-stone-925: var(--surface-925);
+  --color-stone-950: var(--surface-950);
 }
 
-:root {
+/* ── Theme: Forge (default, warm orange on stone) ── */
+:root,
+:root[data-theme="forge"] {
+  --accent-50: #fff8f0;
+  --accent-100: #ffedd5;
+  --accent-200: #fed7aa;
+  --accent-300: #fdba74;
+  --accent-400: #fb923c;
+  --accent-500: #f97316;
+  --accent-600: #ea580c;
+  --accent-700: #c2410c;
+  --accent-rgb: 249, 115, 22;
+  --accent-rgb-soft: 251, 191, 36;
+
+  --surface-750: #352f2b;
+  --surface-850: #231f1c;
+  --surface-900: #1c1917;
+  --surface-925: #171412;
+  --surface-950: #0c0a09;
+
   --background: #1c1917;
   --foreground: #e7e5e4;
+  --bg-gradient-top: #120f0d;
+  --bg-gradient-mid: #1c1917;
+  --bg-gradient-bot: #0c0a09;
+}
+
+/* ── Theme: Ocean (cool blue on slate) ── */
+:root[data-theme="ocean"] {
+  --accent-50: #eff6ff;
+  --accent-100: #dbeafe;
+  --accent-200: #bfdbfe;
+  --accent-300: #93c5fd;
+  --accent-400: #60a5fa;
+  --accent-500: #3b82f6;
+  --accent-600: #2563eb;
+  --accent-700: #1d4ed8;
+  --accent-rgb: 59, 130, 246;
+  --accent-rgb-soft: 125, 211, 252;
+
+  --surface-750: #334155;
+  --surface-850: #1e293b;
+  --surface-900: #0f172a;
+  --surface-925: #0b1120;
+  --surface-950: #020617;
+
+  --background: #0f172a;
+  --foreground: #e2e8f0;
+  --bg-gradient-top: #0b1120;
+  --bg-gradient-mid: #0f172a;
+  --bg-gradient-bot: #020617;
+}
+
+/* ── Theme: Forest (emerald on zinc) ── */
+:root[data-theme="forest"] {
+  --accent-50: #ecfdf5;
+  --accent-100: #d1fae5;
+  --accent-200: #a7f3d0;
+  --accent-300: #6ee7b7;
+  --accent-400: #34d399;
+  --accent-500: #10b981;
+  --accent-600: #059669;
+  --accent-700: #047857;
+  --accent-rgb: 16, 185, 129;
+  --accent-rgb-soft: 110, 231, 183;
+
+  --surface-750: #3f3f46;
+  --surface-850: #27272a;
+  --surface-900: #18181b;
+  --surface-925: #131316;
+  --surface-950: #09090b;
+
+  --background: #18181b;
+  --foreground: #e4e4e7;
+  --bg-gradient-top: #0f1613;
+  --bg-gradient-mid: #18181b;
+  --bg-gradient-bot: #09090b;
+}
+
+/* ── Theme: Royal (violet on gray) ── */
+:root[data-theme="royal"] {
+  --accent-50: #faf5ff;
+  --accent-100: #f3e8ff;
+  --accent-200: #e9d5ff;
+  --accent-300: #d8b4fe;
+  --accent-400: #c084fc;
+  --accent-500: #a855f7;
+  --accent-600: #9333ea;
+  --accent-700: #7e22ce;
+  --accent-rgb: 168, 85, 247;
+  --accent-rgb-soft: 216, 180, 254;
+
+  --surface-750: #3f3f46;
+  --surface-850: #27272a;
+  --surface-900: #1a1625;
+  --surface-925: #15111f;
+  --surface-950: #0b0814;
+
+  --background: #1a1625;
+  --foreground: #e4e4e7;
+  --bg-gradient-top: #15111f;
+  --bg-gradient-mid: #1a1625;
+  --bg-gradient-bot: #0b0814;
+}
+
+/* ── Theme: Rose (pink on neutral) ── */
+:root[data-theme="rose"] {
+  --accent-50: #fff1f2;
+  --accent-100: #ffe4e6;
+  --accent-200: #fecdd3;
+  --accent-300: #fda4af;
+  --accent-400: #fb7185;
+  --accent-500: #f43f5e;
+  --accent-600: #e11d48;
+  --accent-700: #be123c;
+  --accent-rgb: 244, 63, 94;
+  --accent-rgb-soft: 253, 164, 175;
+
+  --surface-750: #404040;
+  --surface-850: #262626;
+  --surface-900: #1c1a1a;
+  --surface-925: #171414;
+  --surface-950: #0a0808;
+
+  --background: #1c1a1a;
+  --foreground: #e5e5e5;
+  --bg-gradient-top: #171414;
+  --bg-gradient-mid: #1c1a1a;
+  --bg-gradient-bot: #0a0808;
+}
+
+/* ── Theme: Mono (grayscale, minimal) ── */
+:root[data-theme="mono"] {
+  --accent-50: #fafafa;
+  --accent-100: #f5f5f5;
+  --accent-200: #e5e5e5;
+  --accent-300: #d4d4d4;
+  --accent-400: #a3a3a3;
+  --accent-500: #737373;
+  --accent-600: #525252;
+  --accent-700: #404040;
+  --accent-rgb: 163, 163, 163;
+  --accent-rgb-soft: 212, 212, 212;
+
+  --surface-750: #404040;
+  --surface-850: #262626;
+  --surface-900: #171717;
+  --surface-925: #111111;
+  --surface-950: #0a0a0a;
+
+  --background: #171717;
+  --foreground: #e5e5e5;
+  --bg-gradient-top: #111111;
+  --bg-gradient-mid: #171717;
+  --bg-gradient-bot: #0a0a0a;
 }
 
 body {
@@ -41,9 +193,10 @@ body::before {
   pointer-events: none;
   z-index: -1;
   background:
-    radial-gradient(circle at top left, rgba(249, 115, 22, 0.12), transparent 26%),
-    radial-gradient(circle at 85% 12%, rgba(251, 191, 36, 0.08), transparent 24%),
-    linear-gradient(180deg, #120f0d 0%, #1c1917 42%, #0c0a09 100%);
+    radial-gradient(circle at top left, rgba(var(--accent-rgb), 0.12), transparent 26%),
+    radial-gradient(circle at 85% 12%, rgba(var(--accent-rgb-soft), 0.08), transparent 24%),
+    linear-gradient(180deg, var(--bg-gradient-top) 0%, var(--bg-gradient-mid) 42%, var(--bg-gradient-bot) 100%);
+  transition: background 0.4s ease;
 }
 
 /* Noise texture overlay */
