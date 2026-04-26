@@ -91,4 +91,41 @@ npm run lint
 npm run build
 ```
 
-Both commands pass in the current reviewed state.
+---
+
+## Docker
+
+You can build and run the app as a production container.
+
+Important:
+
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are used by browser code, so they must be present at image build time
+- `SUPABASE_SERVICE_ROLE_KEY` is used server-side and should also be provided to the container at runtime
+
+### Build the image
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co \
+  --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key \
+  --build-arg SUPABASE_SERVICE_ROLE_KEY=your-service-role-key \
+  -t docforge-web \
+  .
+```
+
+### Run the container
+
+```bash
+docker run --rm -p 3000:3000 \
+  -e NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co \
+  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key \
+  -e SUPABASE_SERVICE_ROLE_KEY=your-service-role-key \
+  docforge-web
+```
+
+Then open `http://localhost:3000` in a browser.
+
+### Notes
+
+- Rebuild the image if either `NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_ANON_KEY` changes
+- If you use Supabase OAuth, add the deployed app URL and callback URL to your Supabase Auth settings, for example `http://localhost:3000/auth/callback`

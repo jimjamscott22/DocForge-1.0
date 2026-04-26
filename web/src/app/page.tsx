@@ -66,7 +66,7 @@ async function getData(search: string, sort: SortOption, fileType: FileFilterOpt
     error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError) {
+  if (userError && userError.name !== "AuthSessionMissingError") {
     console.error("Failed to read user", userError);
   }
 
