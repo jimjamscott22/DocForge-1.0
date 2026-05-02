@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ToastProvider } from "@/components/ToastProvider";
 import { ErrorProvider } from "@/components/ErrorProvider";
@@ -39,12 +40,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" data-theme="forge" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-      </head>
       <body
         className={`${dmSans.variable} ${dmSerif.variable} ${geistMono.variable} antialiased`}
       >
+        <Script
+          id="docforge-theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
         <ToastProvider>
           <ErrorProvider>
             <ThemePicker />

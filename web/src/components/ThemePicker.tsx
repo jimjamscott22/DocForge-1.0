@@ -25,11 +25,11 @@ const STORAGE_KEY = "docforge-theme";
 const isThemeId = (value: string | null): value is ThemeId =>
   THEMES.some((theme) => theme.id === value);
 
-const getInitialTheme = (): ThemeId => {
-  if (typeof window === "undefined") return "forge";
-
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (isThemeId(saved)) return saved;
+const getCurrentTheme = (): ThemeId => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (isThemeId(saved)) return saved;
+  } catch {}
 
   const current = document.documentElement.getAttribute("data-theme");
   if (isThemeId(current)) return current;
@@ -39,8 +39,12 @@ const getInitialTheme = (): ThemeId => {
 
 export default function ThemePicker() {
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState<ThemeId>(getInitialTheme);
+  const [theme, setTheme] = useState<ThemeId>("forge");
   const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setTheme(getCurrentTheme());
+  }, []);
 
   useEffect(() => {
     if (!open) return;
