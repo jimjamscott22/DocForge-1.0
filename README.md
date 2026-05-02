@@ -33,6 +33,7 @@ Contributor and agent guidance lives in [AGENTS.md](/home/jimjamscozz22/Desktop/
 
 - `web/` - Next.js application
 - `supabase/schema.sql` - base schema plus Phase 3 additions
+- `supabase/versioning_migration.sql` - document version table and upload/restore RPCs
 - `supabase/folder_migration.sql` - folder migration
 - `supabase/analytics_migration.sql` - analytics migration
 - `supabase/api_keys_migration.sql` - API key migration
@@ -69,11 +70,15 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 5. Run the SQL in `supabase/schema.sql`
 
-6. If your database was created before the latest search update, also run:
+6. If your database was created before document versioning was added, also run:
+
+- `supabase/versioning_migration.sql`
+
+7. If your database was created before the latest search update, also run:
 
 - `supabase/search_folder_context_migration.sql`
 
-7. Start the app
+8. Start the app
 
 ```bash
 npm run dev

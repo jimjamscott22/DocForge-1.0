@@ -8,6 +8,7 @@ import {
   ErrorSeverity,
   ValidationError,
   ServerError,
+  DatabaseError,
 } from "@/lib/errors";
 import { errorResponse } from "@/lib/apiResponse";
 import { extractText } from "@/lib/textExtractor";
@@ -21,6 +22,42 @@ export const dynamic = "force-dynamic";
 
 const BUCKET_NAME = "DocForgeVault";
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
+
+type SupabaseErrorLike = {
+  code?: string;
+  message?: string;
+  details?: string;
+  hint?: string;
+};
+
+function isMissingVersioningMigrationError(error: SupabaseErrorLike) {
+  const message = `${error.message ?? ""} ${error.details ?? ""} ${error.hint ?? ""}`.toLowerCase();
+
+  return (
+    error.code === "PGRST202" ||
+    message.includes("upsert_document_with_version") ||
+    (message.includes("document_versions") && message.includes("does not exist"))
+  );
+}
+
+function createMetadataSaveError(error: SupabaseErrorLike) {
+  const isMissingMigration = isMissingVersioningMigrationError(error);
+
+  return new DatabaseError(
+    isMissingMigration
+      ? "Upload storage succeeded, but the database is missing the document versioning migration."
+      : "Could not save document metadata. Please try again.",
+    process.env.NODE_ENV === "production"
+      ? undefined
+      : {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          migration: isMissingMigration ? "Run supabase/versioning_migration.sql" : undefined,
+        }
+  );
+}
 
 export async function POST(request: Request) {
   try {
@@ -132,9 +169,7 @@ export async function POST(request: Request) {
         console.error("CRITICAL: storage orphan created at path", uploadData.path, rollbackError);
       }
       console.error("Failed to insert document + version record", error);
-      return errorResponse(
-        new ServerError("Could not save document metadata. Please try again.")
-      );
+      return errorResponse(createMetadataSaveError(error));
     }
 
     return NextResponse.json({ document: data });

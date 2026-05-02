@@ -97,6 +97,19 @@ export class ServerError extends AppError {
   }
 }
 
+export class DatabaseError extends AppError {
+  constructor(message: string, details?: Record<string, unknown>, originalError?: Error) {
+    super({
+      code: ErrorCode.DATABASE_ERROR,
+      severity: ErrorSeverity.HIGH,
+      userMessage: message,
+      details,
+      originalError,
+    });
+    this.name = "DatabaseError";
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(message: string) {
     super({
@@ -116,10 +129,21 @@ export const parseApiError = async (response: Response): Promise<AppError> => {
   try {
     const data = await response.json();
     const message = data.error || "An unknown error occurred";
+    const details = data.details;
+    const code = data.code as ErrorCode | undefined;
+
+    if (code && Object.values(ErrorCode).includes(code)) {
+      return new AppError({
+        code,
+        severity: response.status >= 500 ? ErrorSeverity.HIGH : ErrorSeverity.MEDIUM,
+        userMessage: message,
+        details,
+      });
+    }
     
     switch (response.status) {
       case 400:
-        return new ValidationError(message, data.details);
+        return new ValidationError(message, details);
       case 401:
         return new AuthError(message);
       case 413:
