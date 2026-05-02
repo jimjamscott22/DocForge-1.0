@@ -4,28 +4,15 @@ import {
   AppError,
   ErrorCode,
   ErrorSeverity,
+  NotFoundError,
   ServerError,
 } from "@/lib/errors";
+import { errorResponse } from "@/lib/apiResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const BUCKET_NAME = "DocForgeVault";
-
-function errorResponse(error: AppError): NextResponse {
-  const status =
-    error.code === ErrorCode.AUTH_REQUIRED ||
-    error.code === ErrorCode.UNAUTHORIZED
-      ? 401
-      : error.code === ErrorCode.INVALID_INPUT
-        ? 400
-        : 500;
-
-  return NextResponse.json(
-    { error: error.userMessage, code: error.code },
-    { status }
-  );
-}
 
 export async function DELETE(
   _request: Request,
@@ -56,10 +43,7 @@ export async function DELETE(
       .single();
 
     if (docError || !doc) {
-      return NextResponse.json(
-        { error: "Document not found" },
-        { status: 404 }
-      );
+      return errorResponse(new NotFoundError("Document not found"));
     }
 
     if (doc.created_by !== user.id) {
@@ -72,19 +56,8 @@ export async function DELETE(
       );
     }
 
-    // Delete file from Supabase Storage
-    const { error: storageError } = await supabase.storage
-      .from(BUCKET_NAME)
-      .remove([doc.storage_path]);
-
-    if (storageError) {
-      console.error("Failed to delete file from storage", storageError);
-      return errorResponse(
-        new ServerError("Could not delete file from storage. Please try again.")
-      );
-    }
-
-    // Delete document record from database
+    // Delete document record from database first — DB is the source of truth.
+    // If this fails, storage is untouched and we can return a clean error.
     const { error: dbError } = await supabase
       .from("documents")
       .delete()
@@ -93,10 +66,18 @@ export async function DELETE(
     if (dbError) {
       console.error("Failed to delete document record", dbError);
       return errorResponse(
-        new ServerError(
-          "File was removed but the record could not be deleted. Please try again."
-        )
+        new ServerError("Could not delete document. Please try again.")
       );
+    }
+
+    // Delete file from storage after DB record is gone.
+    // If this fails, the file is orphaned — log for cleanup but still return success.
+    const { error: storageError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .remove([doc.storage_path]);
+
+    if (storageError) {
+      console.error("CRITICAL: orphaned storage file after delete", doc.storage_path, storageError);
     }
 
     return NextResponse.json({ success: true });

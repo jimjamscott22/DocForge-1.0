@@ -9,6 +9,7 @@ export enum ErrorCode {
   STORAGE_ERROR = "STORAGE_ERROR",
   DATABASE_ERROR = "DATABASE_ERROR",
   UNKNOWN_ERROR = "UNKNOWN_ERROR",
+  NOT_FOUND = "NOT_FOUND",
 }
 
 export enum ErrorSeverity {
@@ -96,6 +97,17 @@ export class ServerError extends AppError {
   }
 }
 
+export class NotFoundError extends AppError {
+  constructor(message: string) {
+    super({
+      code: ErrorCode.NOT_FOUND,
+      severity: ErrorSeverity.LOW,
+      userMessage: message,
+    });
+    this.name = "NotFoundError";
+  }
+}
+
 export const isAppError = (error: unknown): error is AppError => {
   return error instanceof AppError;
 };
@@ -120,6 +132,8 @@ export const parseApiError = async (response: Response): Promise<AppError> => {
           code: ErrorCode.INVALID_FILE_TYPE,
           userMessage: message,
         });
+      case 404:
+        return new NotFoundError(message);
       case 500:
         return new ServerError(message);
       default:

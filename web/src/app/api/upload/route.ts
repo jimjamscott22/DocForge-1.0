@@ -9,6 +9,7 @@ import {
   ValidationError,
   ServerError,
 } from "@/lib/errors";
+import { errorResponse } from "@/lib/apiResponse";
 import { extractText } from "@/lib/textExtractor";
 import {
   ALLOWED_UPLOAD_MIME_TYPES,
@@ -20,30 +21,6 @@ export const dynamic = "force-dynamic";
 
 const BUCKET_NAME = "DocForgeVault";
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
-function errorResponse(error: AppError): NextResponse {
-  return NextResponse.json(
-    {
-      error: error.userMessage,
-      code: error.code,
-      details: error.details,
-    },
-    {
-      status:
-        error.code === ErrorCode.AUTH_REQUIRED ||
-        error.code === ErrorCode.UNAUTHORIZED
-          ? 401
-          : error.code === ErrorCode.INVALID_INPUT ||
-            error.code === ErrorCode.FILE_TOO_LARGE ||
-            error.code === ErrorCode.INVALID_FILE_TYPE
-          ? 400
-          : error.code === ErrorCode.SERVER_ERROR ||
-            error.code === ErrorCode.DATABASE_ERROR ||
-            error.code === ErrorCode.STORAGE_ERROR
-          ? 500
-          : 500,
-    }
-  );
-}
 
 export async function POST(request: Request) {
   try {
@@ -135,23 +112,26 @@ export async function POST(request: Request) {
     // Extract searchable text content for supported file types
     const extraction = await extractText(buffer, resolvedMimeType);
 
-    // Save metadata to database
-    const { data, error } = await supabase
-      .from("documents")
-      .insert({
-        title: title.trim(),
-        storage_path: uploadData.path,
-        file_size_bytes: file.size,
-        created_by: user.id,
-        ...(extraction?.text ? { content_text: extraction.text } : {}),
-      })
-      .select("id,title,storage_path,file_size_bytes,created_at")
-      .single();
+    // Atomically insert document row + version record in a single DB transaction via RPC
+    const { data, error } = await supabase.rpc("upsert_document_with_version", {
+      p_document_id:     null,
+      p_title:           title.trim(),
+      p_storage_path:    uploadData.path,
+      p_file_size_bytes: file.size,
+      p_content_type:    resolvedMimeType,
+      p_created_by:      user.id,
+      p_content_text:    extraction?.text ?? null,
+    });
 
     if (error) {
-      // Rollback: remove the uploaded file if DB insert fails
-      await supabase.storage.from(BUCKET_NAME).remove([uploadData.path]);
-      console.error("Failed to insert document metadata", error);
+      // Rollback: remove the uploaded file since the DB record was never created
+      const { error: rollbackError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .remove([uploadData.path]);
+      if (rollbackError) {
+        console.error("CRITICAL: storage orphan created at path", uploadData.path, rollbackError);
+      }
+      console.error("Failed to insert document + version record", error);
       return errorResponse(
         new ServerError("Could not save document metadata. Please try again.")
       );
