@@ -37,17 +37,17 @@
   --accent-rgb: 249, 115, 22;
   --accent-rgb-soft: 251, 191, 36;
 
-  --surface-750: #352f2b;
-  --surface-850: #231f1c;
-  --surface-900: #1c1917;
-  --surface-925: #171412;
-  --surface-950: #0c0a09;
+  --surface-750: #262626;
+  --surface-850: #171717;
+  --surface-900: #0a0a0a;
+  --surface-925: #050505;
+  --surface-950: #000000;
 
-  --background: #1c1917;
-  --foreground: #e7e5e4;
-  --bg-gradient-top: #120f0d;
-  --bg-gradient-mid: #1c1917;
-  --bg-gradient-bot: #0c0a09;
+  --background: #000000;
+  --foreground: #e5e5e5;
+  --bg-gradient-top: #0a0a0a;
+  --bg-gradient-mid: #000000;
+  --bg-gradient-bot: #000000;
 }
 
 /* ── Theme: Ocean (cool blue on slate) ── */
