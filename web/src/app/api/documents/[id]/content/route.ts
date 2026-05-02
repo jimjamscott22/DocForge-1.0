@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
+import {
+  AppError,
+  ErrorCode,
+  ErrorSeverity,
+  NotFoundError,
+  ServerError,
+  ValidationError,
+} from "@/lib/errors";
+import { errorResponse } from "@/lib/apiResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,7 +29,13 @@ export async function GET(
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return errorResponse(
+        new AppError({
+          code: ErrorCode.UNAUTHORIZED,
+          severity: ErrorSeverity.HIGH,
+          userMessage: "Unauthorized",
+        })
+      );
     }
 
     const { data: doc, error: docError } = await supabase
@@ -30,18 +45,14 @@ export async function GET(
       .single();
 
     if (docError || !doc) {
-      return NextResponse.json(
-        { error: "Document not found" },
-        { status: 404 }
-      );
+      return errorResponse(new NotFoundError("Document not found"));
     }
 
     // Verify the file is a text type
     const ext = doc.storage_path.split(".").pop()?.toLowerCase() ?? "";
     if (!TEXT_EXTENSIONS.includes(ext)) {
-      return NextResponse.json(
-        { error: "Preview is only available for text and markdown files" },
-        { status: 400 }
+      return errorResponse(
+        new ValidationError("Preview is only available for text and markdown files")
       );
     }
 
@@ -52,10 +63,7 @@ export async function GET(
 
     if (downloadError || !fileData) {
       console.error("Failed to download file for preview", downloadError);
-      return NextResponse.json(
-        { error: "Could not load file content" },
-        { status: 500 }
-      );
+      return errorResponse(new ServerError("Could not load file content"));
     }
 
     const bytes = await fileData.arrayBuffer();
@@ -79,9 +87,6 @@ export async function GET(
     });
   } catch (err) {
     console.error("Content preview error:", err);
-    return NextResponse.json(
-      { error: "An unexpected error occurred" },
-      { status: 500 }
-    );
+    return errorResponse(new ServerError("An unexpected error occurred"));
   }
 }

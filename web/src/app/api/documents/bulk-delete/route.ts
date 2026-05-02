@@ -6,27 +6,13 @@ import {
   ErrorSeverity,
   ServerError,
 } from "@/lib/errors";
+import { errorResponse } from "@/lib/apiResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const BUCKET_NAME = "DocForgeVault";
 const MAX_IDS = 50;
-
-function errorResponse(error: AppError): NextResponse {
-  const status =
-    error.code === ErrorCode.AUTH_REQUIRED ||
-    error.code === ErrorCode.UNAUTHORIZED
-      ? 401
-      : error.code === ErrorCode.INVALID_INPUT
-        ? 400
-        : 500;
-
-  return NextResponse.json(
-    { error: error.userMessage, code: error.code },
-    { status }
-  );
-}
 
 export async function POST(request: Request) {
   try {
@@ -89,19 +75,8 @@ export async function POST(request: Request) {
     const storagePaths = ownedDocs.map((doc) => doc.storage_path);
     const ownedIds = ownedDocs.map((doc) => doc.id);
 
-    // Delete files from Supabase Storage
-    const { error: storageError } = await supabase.storage
-      .from(BUCKET_NAME)
-      .remove(storagePaths);
-
-    if (storageError) {
-      console.error("Failed to delete files from storage", storageError);
-      return errorResponse(
-        new ServerError("Could not delete files from storage. Please try again.")
-      );
-    }
-
-    // Delete document records from database
+    // Delete document records from database first — DB is the source of truth.
+    // If this fails, storage is untouched and we can return a clean error.
     const { error: dbError } = await supabase
       .from("documents")
       .delete()
@@ -110,10 +85,19 @@ export async function POST(request: Request) {
     if (dbError) {
       console.error("Failed to delete document records", dbError);
       return errorResponse(
-        new ServerError(
-          "Files were removed but some records could not be deleted. Please try again."
-        )
+        new ServerError("Could not delete documents. Please try again.")
       );
+    }
+
+    // Delete files from storage after DB records are gone.
+    // If this fails, the files are orphaned (no DB record) — a quota issue, not a
+    // user-visible bug. Log prominently for cleanup; still return success.
+    const { error: storageError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .remove(storagePaths);
+
+    if (storageError) {
+      console.error("CRITICAL: orphaned storage files after bulk delete", storagePaths, storageError);
     }
 
     return NextResponse.json({ success: true, deleted: ownedIds.length });

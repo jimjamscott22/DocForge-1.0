@@ -9,15 +9,7 @@ import AnalyticsDashboard from "./AnalyticsDashboard";
 import ApiKeyManager from "./ApiKeyManager";
 import { useToast } from "./ToastProvider";
 import { useRouter } from "next/navigation";
-
-type DocumentRow = {
-  id: string;
-  title: string;
-  storage_path: string;
-  file_size_bytes: number | null;
-  created_at: string;
-  folder_id?: string | null;
-};
+import { DocumentRow } from "./documentTableTypes";
 
 type FolderOption = {
   id: string;

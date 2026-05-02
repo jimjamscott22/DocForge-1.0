@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
+import {
+  AppError,
+  ErrorCode,
+  ErrorSeverity,
+  AuthError,
+  NotFoundError,
+  ServerError,
+} from "@/lib/errors";
+import { errorResponse } from "@/lib/apiResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,7 +21,15 @@ export async function PATCH(
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) {
+      return errorResponse(
+        new AppError({
+          code: ErrorCode.UNAUTHORIZED,
+          severity: ErrorSeverity.HIGH,
+          userMessage: "You must be signed in to move documents",
+        })
+      );
+    }
 
     const body = await request.json() as { folder_id?: string | null };
     const folder_id = body.folder_id ?? null;
@@ -25,10 +42,10 @@ export async function PATCH(
       .single();
 
     if (docError || !doc) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+      return errorResponse(new NotFoundError("Document not found"));
     }
     if (doc.created_by !== user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return errorResponse(new AuthError("You do not have permission to move this document"));
     }
 
     // If folder_id is specified, verify it belongs to user
@@ -40,7 +57,7 @@ export async function PATCH(
         .eq("user_id", user.id)
         .single();
       if (!folder) {
-        return NextResponse.json({ error: "Folder not found" }, { status: 404 });
+        return errorResponse(new NotFoundError("Folder not found"));
       }
     }
 
@@ -50,12 +67,12 @@ export async function PATCH(
       .eq("id", id);
 
     if (error) {
-      return NextResponse.json({ error: "Failed to move document" }, { status: 500 });
+      return errorResponse(new ServerError("Failed to move document"));
     }
 
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Move document error:", err);
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+    return errorResponse(new ServerError("An unexpected error occurred"));
   }
 }

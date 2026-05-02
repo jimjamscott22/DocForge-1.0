@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
+import {
+  AppError,
+  ErrorCode,
+  ErrorSeverity,
+  NotFoundError,
+  ServerError,
+  ValidationError,
+} from "@/lib/errors";
+import { errorResponse } from "@/lib/apiResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,11 +21,15 @@ export async function PATCH(
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) {
+      return errorResponse(
+        new AppError({ code: ErrorCode.UNAUTHORIZED, severity: ErrorSeverity.HIGH, userMessage: "Unauthorized" })
+      );
+    }
 
     const body = await request.json() as { name?: string };
     const name = body.name?.trim();
-    if (!name) return NextResponse.json({ error: "Folder name is required" }, { status: 400 });
+    if (!name) return errorResponse(new ValidationError("Folder name is required"));
 
     const { data: folder, error } = await supabase
       .from("folders")
@@ -27,13 +40,13 @@ export async function PATCH(
       .single();
 
     if (error || !folder) {
-      return NextResponse.json({ error: "Folder not found" }, { status: 404 });
+      return errorResponse(new NotFoundError("Folder not found"));
     }
 
     return NextResponse.json({ folder });
   } catch (err) {
     console.error("Folder PATCH error:", err);
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+    return errorResponse(new ServerError("An unexpected error occurred"));
   }
 }
 
@@ -45,7 +58,11 @@ export async function DELETE(
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) {
+      return errorResponse(
+        new AppError({ code: ErrorCode.UNAUTHORIZED, severity: ErrorSeverity.HIGH, userMessage: "Unauthorized" })
+      );
+    }
 
     // Move documents in this folder to null (root)
     await supabase
@@ -78,12 +95,12 @@ export async function DELETE(
 
     if (error) {
       console.error("Failed to delete folder", error);
-      return NextResponse.json({ error: "Failed to delete folder" }, { status: 500 });
+      return errorResponse(new ServerError("Failed to delete folder"));
     }
 
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Folder DELETE error:", err);
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+    return errorResponse(new ServerError("An unexpected error occurred"));
   }
 }

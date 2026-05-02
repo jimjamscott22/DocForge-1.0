@@ -12,16 +12,12 @@ import { errorResponse } from "@/lib/apiResponse";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const BUCKET_NAME = "DocForgeVault";
-
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const { searchParams } = new URL(request.url);
-    const eventType = searchParams.get("event") ?? "download";
     const supabase = await createSupabaseServerClient();
     const {
       data: { user },
@@ -37,10 +33,10 @@ export async function GET(
       );
     }
 
-    // Fetch document metadata
+    // Verify document ownership
     const { data: doc, error: docError } = await supabase
       .from("documents")
-      .select("storage_path, title, created_by")
+      .select("id, created_by")
       .eq("id", id)
       .single();
 
@@ -48,31 +44,24 @@ export async function GET(
       return errorResponse(new NotFoundError("Document not found"));
     }
 
-    // Generate a signed URL (valid for 1 hour)
-    const { data: signedUrlData, error: signedUrlError } = await supabase
-      .storage
-      .from(BUCKET_NAME)
-      .createSignedUrl(doc.storage_path, 3600);
-
-    if (signedUrlError || !signedUrlData?.signedUrl) {
-      console.error("Failed to create signed URL", signedUrlError);
-      return errorResponse(new ServerError("Could not generate download link"));
+    if (doc.created_by !== user.id) {
+      return errorResponse(new NotFoundError("Document not found"));
     }
 
-    if (["download", "view", "preview"].includes(eventType)) {
-      void supabase.from("document_analytics").insert({
-        document_id: id,
-        user_id: user.id,
-        event_type: eventType,
-      });
+    const { data: versions, error } = await supabase
+      .from("document_versions")
+      .select("id, version_number, storage_path, file_size_bytes, content_type, created_at")
+      .eq("document_id", id)
+      .order("version_number", { ascending: false });
+
+    if (error) {
+      console.error("Failed to fetch document versions", error);
+      return errorResponse(new ServerError("Could not fetch version history"));
     }
 
-    return NextResponse.json({
-      url: signedUrlData.signedUrl,
-      title: doc.title,
-    });
+    return NextResponse.json({ versions: versions ?? [] });
   } catch (err) {
-    console.error("Download error:", err);
+    console.error("Versions GET error:", err);
     return errorResponse(new ServerError("An unexpected error occurred"));
   }
 }
