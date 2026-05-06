@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import AuthButtons from "@/components/AuthButtons";
-import UploadForm from "@/components/UploadForm";
+import UploadSection from "@/components/UploadSection";
 import DashboardClient from "@/components/DashboardClient";
 import ReferenceLinksSidebar from "@/components/ReferenceLinksSidebar";
 
@@ -258,20 +258,7 @@ export default async function Home({ searchParams }: PageProps) {
             {/* Upload + info row */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <section className="animate-fade-up lg:col-span-1" style={{ animationDelay: "0.15s" }}>
-                <div className="card-glow rounded-xl border border-stone-700/50 bg-stone-850/60 p-6 backdrop-blur-sm">
-                  <div className="mb-5 flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-forge-500/15">
-                      <svg className="h-4 w-4 text-forge-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h2 className="font-display text-lg text-stone-50">Upload</h2>
-                      <p className="text-xs text-stone-500">PDF, images, text &middot; up to 50 MB</p>
-                    </div>
-                  </div>
-                  <UploadForm />
-                </div>
+                <UploadSection />
               </section>
 
               <section className="animate-fade-up lg:col-span-2" style={{ animationDelay: "0.2s" }}>

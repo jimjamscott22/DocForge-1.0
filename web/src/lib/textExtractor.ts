@@ -6,6 +6,53 @@ export type ExtractionResult = {
 };
 
 /**
+ * Extract readable text from an HTML string.
+ * Prioritises <main> / <article> / role="main" when present, then falls back
+ * to the full <body>.  Strips scripts, styles, nav, header, footer, and all
+ * remaining tags before cleaning up whitespace.
+ */
+export function extractTextFromHtml(html: string): string {
+  // ── 1. Pull out a focused content region ────────────────────────────────
+  const mainMatch =
+    /<main[\s>]([\s\S]*?)<\/main>/i.exec(html) ??
+    /<article[\s>]([\s\S]*?)<\/article>/i.exec(html) ??
+    /role=["']main["'][^>]*>([\s\S]*?)<\/[^>]+>/i.exec(html) ??
+    /<div[^>]+id=["'](?:content|main|docs|documentation)["'][^>]*>([\s\S]*?)<\/div>/i.exec(html);
+
+  let content = mainMatch ? mainMatch[0] : html;
+
+  // ── 2. Remove entire noisy element subtrees ──────────────────────────────
+  const blockTags = ["script", "style", "nav", "header", "footer", "aside", "noscript"];
+  for (const tag of blockTags) {
+    content = content.replace(new RegExp(`<${tag}[\\s>][\\s\\S]*?<\\/${tag}>`, "gi"), " ");
+  }
+
+  // ── 3. Preserve blank lines around block-level elements ──────────────────
+  content = content.replace(/<\/?(p|div|section|h[1-6]|li|tr|br)[^>]*>/gi, "\n");
+
+  // ── 4. Strip remaining tags ──────────────────────────────────────────────
+  content = content.replace(/<[^>]+>/g, "");
+
+  // ── 5. Decode common HTML entities ──────────────────────────────────────
+  content = content
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
+
+  // ── 6. Normalise whitespace ──────────────────────────────────────────────
+  content = content
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
+
+  return content.trim();
+}
+
+/**
  * Extract searchable text content from supported file types.
  * Returns null for unsupported types (images, DOC/DOCX).
  */
