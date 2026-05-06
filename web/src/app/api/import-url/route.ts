@@ -36,7 +36,7 @@ function isBlockedHostname(hostname: string): boolean {
     // RFC-1918 ranges (simple prefix check – good enough for a server-side guard)
     lower.startsWith("10.") ||
     lower.startsWith("192.168.") ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(lower) ||
+    (lower.startsWith("172.") && /^172\.(1[6-9]|2\d|3[01])\./.test(lower)) ||
     lower.startsWith("169.254.") // link-local
   );
 }
@@ -188,8 +188,8 @@ export async function POST(request: Request) {
     }
 
     // Build a plain-text file to store.
-    // Strip non-printable-ASCII characters (U+0020–U+007E) from the title
-    // before including it in the file header.
+    // Remove all non-ASCII characters from the title for the file header
+    // (keeps only printable ASCII: U+0020–U+007E).
     const safeTitle = title.replace(/[^\x20-\x7E]/g, " ").trim() || parsed.hostname;
     const fileContent =
       `# ${safeTitle}\n\nSource: ${parsed.toString()}\n\n---\n\n${extractedText}`;

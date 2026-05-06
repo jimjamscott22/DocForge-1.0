@@ -47,9 +47,6 @@ export function extractTextFromHtml(html: string): string {
   // ── 2. Remove entire noisy element subtrees ──────────────────────────────
   // Each pair of patterns handles: complete <tag>…</tag> blocks and orphan tags.
   for (const tag of BLOCK_TAGS) {
-    // RegExp.exec() with the `g` flag keeps state — reset lastIndex before reuse
-    RE_BLOCK_SUBTREE[tag].lastIndex = 0;
-    RE_BLOCK_ORPHAN[tag].lastIndex = 0;
     content = content.replace(RE_BLOCK_SUBTREE[tag], " ");
     content = content.replace(RE_BLOCK_ORPHAN[tag], " ");
   }
@@ -57,10 +54,18 @@ export function extractTextFromHtml(html: string): string {
   // ── 3. Preserve blank lines around block-level elements ──────────────────
   content = content.replace(/<\/?(p|div|section|h[1-6]|li|tr|br)(\s[^>]*)?>/gi, "\n");
 
-  // ── 4. Strip all remaining HTML tags, including incomplete/truncated ones ─
-  // The `>?` makes the closing angle-bracket optional so that a fragment like
-  // `<script incomplete` (e.g. from a truncated response) is also removed.
-  content = content.replace(/<[^>]*>?/g, "");
+  // ── 4. Strip all remaining HTML tags ────────────────────────────────────
+  // Split the string on '<' and, for each fragment, discard everything up to
+  // (and including) the first '>'.  Fragments with no closing '>' are fully
+  // discarded, which removes truncated/orphan tag starts like `<script\n`.
+  const tagStripped = content.split("<");
+  content = tagStripped[0] +
+    tagStripped.slice(1)
+      .map((fragment) => {
+        const end = fragment.indexOf(">");
+        return end >= 0 ? fragment.slice(end + 1) : "";
+      })
+      .join("");
 
   // ── 5. Decode common HTML entities (&amp; last to avoid double-decode) ───
   content = content
