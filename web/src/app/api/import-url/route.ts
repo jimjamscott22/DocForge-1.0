@@ -17,11 +17,13 @@ export const dynamic = "force-dynamic";
 
 const BUCKET_NAME = "DocForgeVault";
 
-  /** Block requests to private / loopback addresses to prevent SSRF.
-   * Note: this check operates on the supplied hostname string only.
-   * DNS-rebinding attacks (a public domain resolving to a private IP) are not
-   * mitigated here; users with sensitive internal infrastructure should deploy
-   * this service in an isolated network or add a DNS-based egress firewall. */
+/**
+ * Block requests to private / loopback addresses to prevent SSRF.
+ * Note: this check operates on the supplied hostname string only.
+ * DNS-rebinding attacks (a public domain resolving to a private IP) are not
+ * mitigated here; users with sensitive internal infrastructure should deploy
+ * this service in an isolated network or add a DNS-based egress firewall.
+ */
 function isBlockedHostname(hostname: string): boolean {
   const lower = hostname.toLowerCase();
   return (
@@ -125,6 +127,7 @@ export async function POST(request: Request) {
       const reader = res.body?.getReader();
       if (!reader) throw new Error("No response body");
 
+      let hitSizeLimit = false;
       const chunks: Uint8Array[] = [];
       let totalBytes = 0;
       while (true) {
@@ -132,11 +135,18 @@ export async function POST(request: Request) {
         if (done) break;
         if (value) {
           totalBytes += value.length;
-          if (totalBytes > MAX_BYTES) break;
+          if (totalBytes > MAX_BYTES) {
+            hitSizeLimit = true;
+            break;
+          }
           chunks.push(value);
         }
       }
-      reader.cancel();
+      // Only cancel the reader when we stopped early due to the size cap;
+      // if the stream finished naturally (done=true) it is already closed.
+      if (hitSizeLimit) {
+        reader.cancel();
+      }
 
       const combined = new Uint8Array(totalBytes > MAX_BYTES ? MAX_BYTES : totalBytes);
       let offset = 0;
@@ -177,8 +187,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Build a plain-text file to store
-    // Sanitize title: keep only printable ASCII for the file header
+    // Build a plain-text file to store.
+    // Strip non-printable-ASCII characters (U+0020–U+007E) from the title
+    // before including it in the file header.
     const safeTitle = title.replace(/[^\x20-\x7E]/g, " ").trim() || parsed.hostname;
     const fileContent =
       `# ${safeTitle}\n\nSource: ${parsed.toString()}\n\n---\n\n${extractedText}`;
@@ -186,7 +197,11 @@ export async function POST(request: Request) {
     const fileSizeBytes = fileBuffer.length;
 
     // Store as .txt in Supabase Storage
-    const safeName = title.replace(/[^a-z0-9]/gi, "-").slice(0, 60).toLowerCase();
+    const safeName = title
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60)
+      .toLowerCase();
     const uniqueName = `${Date.now()}-${crypto.randomUUID()}-${safeName}.txt`;
     const storagePath = `${user.id}/${uniqueName}`;
 

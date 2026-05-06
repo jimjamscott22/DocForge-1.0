@@ -16,26 +16,25 @@ export type ExtractionResult = {
  */
 export function extractTextFromHtml(html: string): string {
   // ── 1. Pull out a focused content region ────────────────────────────────
+  const CONTENT_GROUP = "content";
   const mainMatch =
-    /<main(\s[^>]*)?>(?<c1>[\s\S]*?)<\/main>/i.exec(html) ??
-    /<article(\s[^>]*)?>(?<c2>[\s\S]*?)<\/article>/i.exec(html) ??
-    /role=["']main["'][^>]*>(?<c3>[\s\S]*?)<\/[^>]+>/i.exec(html) ??
-    /<div[^>]+id=["'](?:content|main|docs|documentation)["'][^>]*>(?<c4>[\s\S]*?)<\/div>/i.exec(html);
+    new RegExp(`<main(\\s[^>]*)?>(?<${CONTENT_GROUP}>[\\s\\S]*?)<\\/main>`, "i").exec(html) ??
+    new RegExp(`<article(\\s[^>]*)?>(?<${CONTENT_GROUP}>[\\s\\S]*?)<\\/article>`, "i").exec(html) ??
+    new RegExp(`role=["']main["'][^>]*>(?<${CONTENT_GROUP}>[\\s\\S]*?)<\\/[^>]+>`, "i").exec(html) ??
+    new RegExp(`<div[^>]+id=["'](?:content|main|docs|documentation)["'][^>]*>(?<${CONTENT_GROUP}>[\\s\\S]*?)<\\/div>`, "i").exec(html);
 
-  // Use inner content only (named group), falling back to the whole document
-  let content: string = mainMatch?.groups
-    ? (mainMatch.groups.c1 ?? mainMatch.groups.c2 ?? mainMatch.groups.c3 ?? mainMatch.groups.c4 ?? html)
-    : html;
+  // Use the named 'content' group (inner content), falling back to full document
+  let content: string = mainMatch?.groups?.[CONTENT_GROUP] ?? html;
 
   // ── 2. Remove entire noisy element subtrees ──────────────────────────────
-  // Pattern handles optional attributes: <tag>, <tag attr="val">, <tag/>
+  // Pattern handles: <tag>, <tag attr="val">, <tag/>, </tag>
   const blockTags = ["script", "style", "nav", "header", "footer", "aside", "noscript"];
   for (const tag of blockTags) {
     content = content.replace(
       new RegExp(`<${tag}(\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "gi"),
       " "
     );
-    // Also remove any orphan open/close tags left behind
+    // Strip any orphan open/close tags left behind (e.g. after truncation)
     content = content.replace(new RegExp(`<\\/?${tag}(\\s[^>]*)?>`, "gi"), " ");
   }
 
@@ -44,10 +43,13 @@ export function extractTextFromHtml(html: string): string {
 
   // ── 4. Strip all remaining HTML tags ────────────────────────────────────
   content = content.replace(/<[^>]*>/g, "");
-  // Clean up any unclosed tag fragments (e.g. a truncated <tag at end of buffer)
+  // Belt-and-suspenders: remove any script/style remnants surviving general stripping
+  content = content.replace(/<script[^>]*>/gi, "").replace(/<\/script>/gi, "");
+  content = content.replace(/<style[^>]*>/gi, "").replace(/<\/style>/gi, "");
+  // Clean up any unclosed tag fragment at end of buffer (e.g. a truncated page)
   content = content.replace(/<[^>]*$/, "");
 
-  // ── 5. Decode common HTML entities (& last to avoid double-decode) ───────
+  // ── 5. Decode common HTML entities (&amp; last to avoid double-decode) ───
   content = content
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")

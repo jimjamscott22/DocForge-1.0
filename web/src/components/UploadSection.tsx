@@ -30,7 +30,7 @@ export default function UploadSection() {
           </h2>
           <p className="text-xs text-stone-500">
             {activeTab === "upload"
-              ? "PDF, images, text \u00b7 up to 50\u00a0MB"
+              ? "PDF, images, text · up to 50\u00a0MB"
               : "Paste a URL to save a page as a document"}
           </p>
         </div>

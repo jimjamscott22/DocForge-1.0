@@ -121,7 +121,7 @@ export default function ImportUrlForm() {
           {isImporting ? (
             <>
               <Spinner size="sm" />
-              Importing&hellip;
+              Importing…
             </>
           ) : (
             <>
