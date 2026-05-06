@@ -5,6 +5,87 @@ export type ExtractionResult = {
   truncated: boolean;
 };
 
+// Named group used in all content-region patterns
+const CONTENT_GROUP = "content";
+
+// Module-level pre-compiled patterns for content-region detection
+const RE_MAIN    = new RegExp(`<main(\\s[^>]*)?>(?<${CONTENT_GROUP}>[\\s\\S]*?)<\\/main>`, "i");
+const RE_ARTICLE = new RegExp(`<article(\\s[^>]*)?>(?<${CONTENT_GROUP}>[\\s\\S]*?)<\\/article>`, "i");
+const RE_ROLE    = new RegExp(`role=["']main["'][^>]*>(?<${CONTENT_GROUP}>[\\s\\S]*?)<\\/[^>]+>`, "i");
+const RE_DIV_ID  = new RegExp(`<div[^>]+id=["'](?:content|main|docs|documentation)["'][^>]*>(?<${CONTENT_GROUP}>[\\s\\S]*?)<\\/div>`, "i");
+
+// Pre-compiled patterns for noisy element removal, keyed by tag name
+const BLOCK_TAGS = ["script", "style", "nav", "header", "footer", "aside", "noscript"] as const;
+type BlockTag = typeof BLOCK_TAGS[number];
+const RE_BLOCK_SUBTREE: Record<BlockTag, RegExp> = Object.fromEntries(
+  BLOCK_TAGS.map((tag) => [tag, new RegExp(`<${tag}(\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "gi")])
+) as Record<BlockTag, RegExp>;
+const RE_BLOCK_ORPHAN: Record<BlockTag, RegExp> = Object.fromEntries(
+  BLOCK_TAGS.map((tag) => [tag, new RegExp(`<\\/?${tag}(\\s[^>]*)?>`, "gi")])
+) as Record<BlockTag, RegExp>;
+
+/**
+ * Extract readable text from an HTML string.
+ * Prioritises <main> / <article> / role="main" when present, then falls back
+ * to the full <body>.  Strips scripts, styles, nav, header, footer, and all
+ * remaining tags before cleaning up whitespace.
+ *
+ * The returned string is plain text for storage and indexing — it is never
+ * rendered as HTML.
+ */
+export function extractTextFromHtml(html: string): string {
+  // ── 1. Pull out a focused content region ────────────────────────────────
+  const mainMatch =
+    RE_MAIN.exec(html) ??
+    RE_ARTICLE.exec(html) ??
+    RE_ROLE.exec(html) ??
+    RE_DIV_ID.exec(html);
+
+  // Use the named 'content' group (inner content), falling back to full document
+  let content: string = mainMatch?.groups?.[CONTENT_GROUP] ?? html;
+
+  // ── 2. Remove entire noisy element subtrees ──────────────────────────────
+  // Each pair of patterns handles: complete <tag>…</tag> blocks and orphan tags.
+  for (const tag of BLOCK_TAGS) {
+    content = content.replace(RE_BLOCK_SUBTREE[tag], " ");
+    content = content.replace(RE_BLOCK_ORPHAN[tag], " ");
+  }
+
+  // ── 3. Preserve blank lines around block-level elements ──────────────────
+  content = content.replace(/<\/?(p|div|section|h[1-6]|li|tr|br)(\s[^>]*)?>/gi, "\n");
+
+  // ── 4. Strip all remaining HTML tags ────────────────────────────────────
+  // Split the string on '<' and, for each fragment, discard everything up to
+  // (and including) the first '>'.  Fragments with no closing '>' are fully
+  // discarded, which removes truncated/orphan tag starts like `<script\n`.
+  const tagStripped = content.split("<");
+  content = tagStripped[0] +
+    tagStripped.slice(1)
+      .map((fragment) => {
+        const end = fragment.indexOf(">");
+        return end >= 0 ? fragment.slice(end + 1) : "";
+      })
+      .join("");
+
+  // ── 5. Decode common HTML entities (&amp; last to avoid double-decode) ───
+  content = content
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&"); // must be last
+
+  // ── 6. Normalise whitespace ──────────────────────────────────────────────
+  content = content
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
+
+  return content.trim();
+}
+
 /**
  * Extract searchable text content from supported file types.
  * Returns null for unsupported types (images, DOC/DOCX).
