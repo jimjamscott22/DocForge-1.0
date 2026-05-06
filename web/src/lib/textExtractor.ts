@@ -10,37 +10,51 @@ export type ExtractionResult = {
  * Prioritises <main> / <article> / role="main" when present, then falls back
  * to the full <body>.  Strips scripts, styles, nav, header, footer, and all
  * remaining tags before cleaning up whitespace.
+ *
+ * The returned string is plain text for storage and indexing — it is never
+ * rendered as HTML.
  */
 export function extractTextFromHtml(html: string): string {
   // ── 1. Pull out a focused content region ────────────────────────────────
   const mainMatch =
-    /<main[\s>]([\s\S]*?)<\/main>/i.exec(html) ??
-    /<article[\s>]([\s\S]*?)<\/article>/i.exec(html) ??
-    /role=["']main["'][^>]*>([\s\S]*?)<\/[^>]+>/i.exec(html) ??
-    /<div[^>]+id=["'](?:content|main|docs|documentation)["'][^>]*>([\s\S]*?)<\/div>/i.exec(html);
+    /<main(\s[^>]*)?>(?<c1>[\s\S]*?)<\/main>/i.exec(html) ??
+    /<article(\s[^>]*)?>(?<c2>[\s\S]*?)<\/article>/i.exec(html) ??
+    /role=["']main["'][^>]*>(?<c3>[\s\S]*?)<\/[^>]+>/i.exec(html) ??
+    /<div[^>]+id=["'](?:content|main|docs|documentation)["'][^>]*>(?<c4>[\s\S]*?)<\/div>/i.exec(html);
 
-  let content = mainMatch ? mainMatch[0] : html;
+  // Use inner content only (named group), falling back to the whole document
+  let content: string = mainMatch?.groups
+    ? (mainMatch.groups.c1 ?? mainMatch.groups.c2 ?? mainMatch.groups.c3 ?? mainMatch.groups.c4 ?? html)
+    : html;
 
   // ── 2. Remove entire noisy element subtrees ──────────────────────────────
+  // Pattern handles optional attributes: <tag>, <tag attr="val">, <tag/>
   const blockTags = ["script", "style", "nav", "header", "footer", "aside", "noscript"];
   for (const tag of blockTags) {
-    content = content.replace(new RegExp(`<${tag}[\\s>][\\s\\S]*?<\\/${tag}>`, "gi"), " ");
+    content = content.replace(
+      new RegExp(`<${tag}(\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "gi"),
+      " "
+    );
+    // Also remove any orphan open/close tags left behind
+    content = content.replace(new RegExp(`<\\/?${tag}(\\s[^>]*)?>`, "gi"), " ");
   }
 
   // ── 3. Preserve blank lines around block-level elements ──────────────────
-  content = content.replace(/<\/?(p|div|section|h[1-6]|li|tr|br)[^>]*>/gi, "\n");
+  content = content.replace(/<\/?(p|div|section|h[1-6]|li|tr|br)(\s[^>]*)?>/gi, "\n");
 
-  // ── 4. Strip remaining tags ──────────────────────────────────────────────
-  content = content.replace(/<[^>]+>/g, "");
+  // ── 4. Strip all remaining HTML tags ────────────────────────────────────
+  content = content.replace(/<[^>]*>/g, "");
+  // Clean up any unclosed tag fragments (e.g. a truncated <tag at end of buffer)
+  content = content.replace(/<[^>]*$/, "");
 
-  // ── 5. Decode common HTML entities ──────────────────────────────────────
+  // ── 5. Decode common HTML entities (& last to avoid double-decode) ───────
   content = content
-    .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ");
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&"); // must be last
 
   // ── 6. Normalise whitespace ──────────────────────────────────────────────
   content = content

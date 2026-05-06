@@ -17,7 +17,11 @@ export const dynamic = "force-dynamic";
 
 const BUCKET_NAME = "DocForgeVault";
 
-/** Block requests to private / loopback addresses to prevent SSRF. */
+  /** Block requests to private / loopback addresses to prevent SSRF.
+   * Note: this check operates on the supplied hostname string only.
+   * DNS-rebinding attacks (a public domain resolving to a private IP) are not
+   * mitigated here; users with sensitive internal infrastructure should deploy
+   * this service in an isolated network or add a DNS-based egress firewall. */
 function isBlockedHostname(hostname: string): boolean {
   const lower = hostname.toLowerCase();
   return (
@@ -137,8 +141,9 @@ export async function POST(request: Request) {
       const combined = new Uint8Array(totalBytes > MAX_BYTES ? MAX_BYTES : totalBytes);
       let offset = 0;
       for (const chunk of chunks) {
-        combined.set(chunk.subarray(0, Math.min(chunk.length, combined.length - offset)), offset);
-        offset += chunk.length;
+        const copied = Math.min(chunk.length, combined.length - offset);
+        combined.set(chunk.subarray(0, copied), offset);
+        offset += copied;
         if (offset >= combined.length) break;
       }
       html = new TextDecoder("utf-8").decode(combined);
@@ -173,8 +178,10 @@ export async function POST(request: Request) {
     }
 
     // Build a plain-text file to store
+    // Sanitize title: keep only printable ASCII for the file header
+    const safeTitle = title.replace(/[^\x20-\x7E]/g, " ").trim() || parsed.hostname;
     const fileContent =
-      `# ${title}\n\nSource: ${parsed.toString()}\n\n---\n\n${extractedText}`;
+      `# ${safeTitle}\n\nSource: ${parsed.toString()}\n\n---\n\n${extractedText}`;
     const fileBuffer = Buffer.from(fileContent, "utf-8");
     const fileSizeBytes = fileBuffer.length;
 
