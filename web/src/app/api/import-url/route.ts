@@ -16,6 +16,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const BUCKET_NAME = "DocForgeVault";
+/** Maximum HTML response body size (5 MB) to prevent memory exhaustion. */
+const MAX_HTML_BYTES = 5 * 1024 * 1024;
 
 /**
  * Block requests to private / loopback addresses to prevent SSRF.
@@ -122,8 +124,6 @@ export async function POST(request: Request) {
         );
       }
 
-      // Cap response body at 5 MB to avoid runaway reads
-      const MAX_BYTES = 5 * 1024 * 1024;
       const reader = res.body?.getReader();
       if (!reader) throw new Error("No response body");
 
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
         if (done) break;
         if (value) {
           totalBytes += value.length;
-          if (totalBytes > MAX_BYTES) {
+          if (totalBytes > MAX_HTML_BYTES) {
             hitSizeLimit = true;
             break;
           }
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
         reader.cancel();
       }
 
-      const combined = new Uint8Array(totalBytes > MAX_BYTES ? MAX_BYTES : totalBytes);
+      const combined = new Uint8Array(totalBytes > MAX_HTML_BYTES ? MAX_HTML_BYTES : totalBytes);
       let offset = 0;
       for (const chunk of chunks) {
         const copied = Math.min(chunk.length, combined.length - offset);
@@ -197,11 +197,13 @@ export async function POST(request: Request) {
     const fileSizeBytes = fileBuffer.length;
 
     // Store as .txt in Supabase Storage
-    const safeName = title
-      .replace(/[^a-z0-9]+/gi, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 60)
-      .toLowerCase();
+    const safeName = (
+      title
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 60)
+        .toLowerCase() || "imported-page"
+    );
     const uniqueName = `${Date.now()}-${crypto.randomUUID()}-${safeName}.txt`;
     const storagePath = `${user.id}/${uniqueName}`;
 
