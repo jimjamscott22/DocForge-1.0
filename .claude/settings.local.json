@@ -24,5 +24,19 @@
       "Bash(node -e \"const pp = require\\(''pdf-parse''\\); const p = new pp.PDFParse\\(\\); console.log\\(typeof p.loadPDF, typeof p.parseBuffer\\)\")",
       "Bash(npx tsc *)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "python-sdk",
+    "docker",
+    "memory-bank",
+    "sequential-thinking",
+    "brave-search",
+    "google-maps",
+    "deep-graph"
+  ],
+  "disabledMcpjsonServers": [
+    "jupyter",
+    "postgresql",
+    "opik"
+  ]
 }
