@@ -90,27 +90,38 @@ npm run dev
 
 If you prefer to run the application using Docker, a `docker-compose.yml` file is provided in the root directory.
 
-Because Next.js embeds browser-facing environment variables (`NEXT_PUBLIC_*`) at build time, these variables must be provided as build arguments when constructing the image. Docker Compose reads them from the `.env` file in the root directory.
+Because Next.js embeds browser-facing environment variables (`NEXT_PUBLIC_*`) at build time, these variables must be provided as build arguments when constructing the image. By default, Docker Compose looks for a `.env` file in the root directory, but you can also use your existing `web/.env.local` directly.
 
-1. **Create a `.env` file** in the project root directory (same folder as `docker-compose.yml`) and define your Supabase credentials:
+### Option A: Use your existing `web/.env.local` directly (Recommended)
 
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   ```
+If you already have a configured `web/.env.local` file, you can tell Docker Compose to use it as the environment source:
 
-2. **Build and start the container**:
+```bash
+docker compose --env-file web/.env.local up --build
+```
 
-   ```bash
-   docker compose up --build
-   ```
+### Option B: Copy to the root `.env`
 
-   *(Or `docker-compose up --build` if using Compose V1)*
+Alternatively, you can copy your environment file to the project root and run standard Docker Compose commands:
 
-3. **Access the application**:
+**Windows (PowerShell):**
+```powershell
+Copy-Item web/.env.local .env
+docker compose up --build
+```
 
-   Once the build is complete and the container is running, access the web app at [http://localhost:3000](http://localhost:3000).
+**macOS / Linux:**
+```bash
+cp web/.env.local .env
+docker compose up --build
+```
+
+---
+
+### Troubleshooting
+
+- **Docker daemon connection error**: If you see an error like `failed to connect to the docker API`, ensure that **Docker Desktop** is open and running on your system.
+- **Compose V1**: If you are using an older version of Docker, use `docker-compose` instead of `docker compose`.
 
 ---
 
