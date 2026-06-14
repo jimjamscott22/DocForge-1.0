@@ -86,6 +86,34 @@ npm run dev
 
 ---
 
+## Running with Docker Compose
+
+If you prefer to run the application using Docker, a `docker-compose.yml` file is provided in the root directory.
+
+Because Next.js embeds browser-facing environment variables (`NEXT_PUBLIC_*`) at build time, these variables must be provided as build arguments when constructing the image. Docker Compose reads them from the `.env` file in the root directory.
+
+1. **Create a `.env` file** in the project root directory (same folder as `docker-compose.yml`) and define your Supabase credentials:
+
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   ```
+
+2. **Build and start the container**:
+
+   ```bash
+   docker compose up --build
+   ```
+
+   *(Or `docker-compose up --build` if using Compose V1)*
+
+3. **Access the application**:
+
+   Once the build is complete and the container is running, access the web app at [http://localhost:3000](http://localhost:3000).
+
+---
+
 ## Storage and Search Notes
 
 - Files are stored in Supabase Storage bucket `DocForgeVault`
