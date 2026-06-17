@@ -7,10 +7,11 @@ import {
   ErrorCode,
   ErrorSeverity,
   ValidationError,
-  ServerError,
   DatabaseError,
 } from "@/lib/errors";
-import { errorResponse } from "@/lib/apiResponse";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { requireUser } from "@/lib/routeAuth";
+import { BUCKET_NAME } from "@/lib/storage";
 import { extractText } from "@/lib/textExtractor";
 import {
   ALLOWED_UPLOAD_MIME_TYPES,
@@ -20,7 +21,6 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const BUCKET_NAME = "DocForgeVault";
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
 
 type SupabaseErrorLike = {
@@ -62,19 +62,7 @@ function createMetadataSaveError(error: SupabaseErrorLike) {
 export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResponse(
-        new AppError({
-          code: ErrorCode.UNAUTHORIZED,
-          severity: ErrorSeverity.HIGH,
-          userMessage: "You must be signed in to upload documents",
-        })
-      );
-    }
+    const user = await requireUser(supabase, "upload documents");
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -174,9 +162,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ document: data });
   } catch (err) {
-    console.error("Upload error:", err);
-    return errorResponse(
-      new ServerError("An unexpected error occurred during upload")
-    );
+    return handleRouteError(err, "An unexpected error occurred during upload");
   }
 }

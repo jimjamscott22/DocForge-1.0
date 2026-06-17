@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { formatBytes } from "@/lib/format";
 
 type AnalyticsData = {
   totalDocuments: number;
@@ -9,13 +10,6 @@ type AnalyticsData = {
   topDocuments: Array<{ id: string; title: string; views: number }>;
   dailyActivity: Array<{ date: string; count: number }>;
   weeklyDocuments: Array<{ weekStart: string; count: number }>;
-};
-
-const formatBytes = (bytes: number): string => {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB"];
-  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  return `${(bytes / 1024 ** i).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 };
 
 function MiniBarChart({ data, label }: { data: Array<{ label: string; count: number }>; label: string }) {

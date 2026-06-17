@@ -6,16 +6,15 @@ import {
   ErrorCode,
   ErrorSeverity,
   ValidationError,
-  ServerError,
   DatabaseError,
 } from "@/lib/errors";
-import { errorResponse } from "@/lib/apiResponse";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { requireUser } from "@/lib/routeAuth";
+import { BUCKET_NAME } from "@/lib/storage";
 import { extractTextFromHtml } from "@/lib/textExtractor";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const BUCKET_NAME = "DocForgeVault";
 /** Maximum HTML response body size (5 MB) to prevent memory exhaustion. */
 const MAX_HTML_BYTES = 5 * 1024 * 1024;
 
@@ -44,19 +43,7 @@ function isBlockedHostname(hostname: string): boolean {
 export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResponse(
-        new AppError({
-          code: ErrorCode.UNAUTHORIZED,
-          severity: ErrorSeverity.HIGH,
-          userMessage: "You must be signed in to import documents",
-        })
-      );
-    }
+    const user = await requireUser(supabase, "import documents");
 
     const body = await request.json().catch(() => null);
     const rawUrl: unknown = body?.url;
@@ -258,9 +245,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ document: data });
   } catch (err) {
-    console.error("Import URL error:", err);
-    return errorResponse(
-      new ServerError("An unexpected error occurred while importing the document")
-    );
+    return handleRouteError(err, "An unexpected error occurred while importing the document");
   }
 }

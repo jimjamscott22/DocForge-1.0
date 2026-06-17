@@ -7,12 +7,12 @@ import {
   NotFoundError,
   ServerError,
 } from "@/lib/errors";
-import { errorResponse } from "@/lib/apiResponse";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { requireUser } from "@/lib/routeAuth";
+import { BUCKET_NAME } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const BUCKET_NAME = "DocForgeVault";
 
 export async function DELETE(
   _request: Request,
@@ -21,19 +21,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResponse(
-        new AppError({
-          code: ErrorCode.UNAUTHORIZED,
-          severity: ErrorSeverity.HIGH,
-          userMessage: "You must be signed in to delete documents",
-        })
-      );
-    }
+    const user = await requireUser(supabase, "delete documents");
 
     // Fetch document to verify ownership and get storage path
     const { data: doc, error: docError } = await supabase
@@ -82,9 +70,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Delete error:", err);
-    return errorResponse(
-      new ServerError("An unexpected error occurred while deleting the document")
-    );
+    return handleRouteError(err, "An unexpected error occurred while deleting the document");
   }
 }

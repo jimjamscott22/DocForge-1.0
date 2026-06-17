@@ -6,30 +6,19 @@ import {
   ErrorSeverity,
   ServerError,
 } from "@/lib/errors";
-import { errorResponse } from "@/lib/apiResponse";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { requireUser } from "@/lib/routeAuth";
+import { BUCKET_NAME } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const BUCKET_NAME = "DocForgeVault";
 const MAX_IDS = 50;
 
 export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResponse(
-        new AppError({
-          code: ErrorCode.UNAUTHORIZED,
-          severity: ErrorSeverity.HIGH,
-          userMessage: "You must be signed in to delete documents",
-        })
-      );
-    }
+    const user = await requireUser(supabase, "delete documents");
 
     const body = await request.json();
     const ids: unknown = body.ids;
@@ -102,9 +91,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, deleted: ownedIds.length });
   } catch (err) {
-    console.error("Bulk delete error:", err);
-    return errorResponse(
-      new ServerError("An unexpected error occurred while deleting documents")
-    );
+    return handleRouteError(err, "An unexpected error occurred while deleting documents");
   }
 }

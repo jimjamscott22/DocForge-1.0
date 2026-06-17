@@ -3,6 +3,7 @@ import AuthButtons from "@/components/AuthButtons";
 import UploadSection from "@/components/UploadSection";
 import DashboardClient from "@/components/DashboardClient";
 import ReferenceLinksSidebar from "@/components/ReferenceLinksSidebar";
+import { getFileTypeFromPath, type FileFilterOption } from "@/lib/fileType";
 
 export const dynamic = "force-dynamic";
 
@@ -20,19 +21,9 @@ type PageProps = {
 };
 
 type SortOption = "date_desc" | "date_asc" | "name_asc" | "name_desc" | "size_desc" | "size_asc";
-type FileFilterOption = "all" | "pdf" | "img" | "txt" | "doc" | "other";
 type EnvironmentOption = "production" | "staging" | "development";
 
 const formatDocumentCount = (count: number) => `${count} document${count === 1 ? "" : "s"}`;
-
-const getFileTypeFromPath = (path: string): FileFilterOption => {
-  const ext = path.split(".").pop()?.toLowerCase() ?? "";
-  if (["pdf"].includes(ext)) return "pdf";
-  if (["png", "jpg", "jpeg", "gif"].includes(ext)) return "img";
-  if (["md", "txt"].includes(ext)) return "txt";
-  if (["doc", "docx"].includes(ext)) return "doc";
-  return "other";
-};
 
 const sortDocuments = (documents: DocumentRow[], sort: SortOption) => {
   const sorted = [...documents];

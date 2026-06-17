@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { formatBytes } from "@/lib/format";
 
 type Version = {
   id: string;
@@ -17,14 +18,6 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   onRestored: () => void;
-};
-
-const formatBytes = (bytes: number) => {
-  if (bytes <= 0) return "—";
-  const units = ["B", "KB", "MB", "GB"];
-  const exp = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const val = bytes / 1024 ** exp;
-  return `${val.toFixed(val >= 10 ? 0 : 1)} ${units[exp]}`;
 };
 
 const formatDate = (value: string) =>

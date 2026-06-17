@@ -5,6 +5,7 @@ import DeleteDocumentButton from "./DeleteDocumentButton";
 import TextPreviewModal from "./TextPreviewModal";
 import PdfPreviewModal from "./PdfPreviewModal";
 import ExportButton from "./ExportButton";
+import { getFileExtension } from "@/lib/fileType";
 import {
   DocumentRow,
   FileTypeIcon,
@@ -23,7 +24,7 @@ type Props = {
 };
 
 function PreviewButton({ doc }: { doc: DocumentRow }) {
-  const ext = doc.storage_path.split(".").pop()?.toLowerCase() ?? "";
+  const ext = getFileExtension(doc.storage_path);
   if (ext === "pdf") return <PdfPreviewModal documentId={doc.id} documentTitle={doc.title} />;
   if (["txt", "md"].includes(ext)) return <TextPreviewModal documentId={doc.id} documentTitle={doc.title} />;
   return null;

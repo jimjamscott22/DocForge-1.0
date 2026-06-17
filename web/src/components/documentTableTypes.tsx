@@ -1,3 +1,7 @@
+// Re-exported from shared libs so existing importers keep a single entry point.
+export { formatBytes } from "@/lib/format";
+export { getFileIcon } from "@/lib/fileType";
+
 export type DocumentRow = {
   id: string;
   title: string;
@@ -5,26 +9,6 @@ export type DocumentRow = {
   file_size_bytes: number | null;
   created_at: string;
   folder_id?: string | null;
-};
-
-export const formatBytes = (bytes: number | null) => {
-  if (!bytes || bytes <= 0) return "—";
-  const units = ["B", "KB", "MB", "GB"];
-  const exponent = Math.min(
-    Math.floor(Math.log(bytes) / Math.log(1024)),
-    units.length - 1
-  );
-  const value = bytes / 1024 ** exponent;
-  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[exponent]}`;
-};
-
-export const getFileIcon = (path: string) => {
-  const ext = path.split(".").pop()?.toLowerCase() ?? "";
-  if (["pdf"].includes(ext)) return "pdf";
-  if (["png", "jpg", "jpeg", "gif"].includes(ext)) return "img";
-  if (["md", "txt"].includes(ext)) return "txt";
-  if (["doc", "docx"].includes(ext)) return "doc";
-  return "file";
 };
 
 export const formatDate = (value: string) =>

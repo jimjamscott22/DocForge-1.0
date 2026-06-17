@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { AppError, ErrorCode } from "@/lib/errors";
+import { AppError, ErrorCode, ServerError, isAppError } from "@/lib/errors";
 
 export function errorResponse(error: AppError): NextResponse {
   const status =
@@ -21,4 +21,17 @@ export function errorResponse(error: AppError): NextResponse {
     },
     { status }
   );
+}
+
+/**
+ * Convert an error caught at the top of an API route into a response.
+ * Known {@link AppError}s pass through with their status; anything else is
+ * logged and returned as a generic 500 with {@link fallbackMessage}.
+ */
+export function handleRouteError(err: unknown, fallbackMessage: string): NextResponse {
+  if (isAppError(err)) {
+    return errorResponse(err);
+  }
+  console.error(fallbackMessage, err);
+  return errorResponse(new ServerError(fallbackMessage));
 }

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "./ToastProvider";
+import { getFileExtension } from "@/lib/fileType";
 
 type ExportButtonProps = {
   documentId: string;
@@ -19,7 +20,7 @@ export default function ExportButton({
   const { showSuccess, showError } = useToast();
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const ext = storagePath.split(".").pop()?.toLowerCase() ?? "";
+  const ext = getFileExtension(storagePath);
   const isPdf = ext === "pdf";
   const isText = ["txt", "md"].includes(ext);
 
