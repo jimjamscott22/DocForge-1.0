@@ -132,39 +132,130 @@ export default async function Home({ searchParams }: PageProps) {
     fileType === "all" ? "All file types" : `Filtered: ${fileType.toUpperCase()}`,
     totalStorageMb,
   ];
+  const workspaceControls = (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-forge-400">
+            Library controls
+          </p>
+          <p className="mt-1 text-sm text-stone-400">
+            Search, filter, and sort {formatDocumentCount(documents.length)}.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {statusChips.map((chip) => (
+            <span
+              key={chip}
+              className="rounded-full border border-stone-700/60 bg-stone-950/50 px-3 py-1.5 text-xs font-medium text-stone-300"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+      </div>
+      <form className="grid gap-3 xl:grid-cols-[minmax(14rem,1.4fr)_auto_auto_auto_auto]" method="get">
+        <div className="relative">
+          <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            type="text"
+            name="q"
+            defaultValue={search}
+            placeholder="Search titles and indexed content..."
+            className="focus-ring w-full rounded-lg border border-stone-700/50 bg-stone-900/80 py-3 pl-9 pr-3 text-sm text-stone-200 placeholder-stone-500 transition focus:border-forge-500/40 focus:outline-none"
+          />
+        </div>
+        <select
+          name="sort"
+          defaultValue={sort}
+          className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-3 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
+          aria-label="Sort documents"
+        >
+          <option value="date_desc">Newest</option>
+          <option value="date_asc">Oldest</option>
+          <option value="name_asc">Name (A-Z)</option>
+          <option value="name_desc">Name (Z-A)</option>
+          <option value="size_desc">Size (Largest)</option>
+          <option value="size_asc">Size (Smallest)</option>
+        </select>
+        <select
+          name="type"
+          defaultValue={fileType}
+          className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-3 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
+          aria-label="Filter by file type"
+        >
+          <option value="all">All types</option>
+          <option value="pdf">PDF</option>
+          <option value="img">Images</option>
+          <option value="txt">Text / Markdown</option>
+          <option value="doc">Word Docs</option>
+          <option value="other">Other</option>
+        </select>
+        <select
+          name="env"
+          defaultValue={environment}
+          className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-3 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
+          aria-label="Switch environment"
+        >
+          <option value="production">Production</option>
+          <option value="staging">Staging</option>
+          <option value="development">Development</option>
+        </select>
+        <button
+          type="submit"
+          className="focus-ring rounded-lg bg-forge-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-forge-500"
+        >
+          Search
+        </button>
+      </form>
+    </div>
+  );
 
   return (
     <main className="noise-bg relative min-h-screen bg-stone-900 text-stone-200 antialiased">
-      <div className="glow-top relative z-10 mx-auto flex max-w-6xl flex-col gap-10 px-6 py-12 sm:px-8">
+      <div className={`glow-top relative z-10 mx-auto flex max-w-6xl flex-col px-6 py-10 sm:px-8 ${isAuthed ? "gap-6" : "gap-10"}`}>
 
         {/* ── Header ── */}
         <header
-          className="animate-fade-up flex flex-col justify-between gap-6 sm:flex-row sm:items-end"
+          className={`animate-fade-up flex flex-col justify-between gap-6 sm:flex-row ${isAuthed ? "sm:items-center" : "sm:items-end"}`}
         >
-          <div className="space-y-3">
+          <div className={isAuthed ? "space-y-1.5" : "space-y-3"}>
             <div className="flex items-center gap-3">
               {/* Anvil / forge icon */}
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-forge-500/15 ring-1 ring-forge-500/25">
+              <div className={`${isAuthed ? "h-11 w-11 rounded-xl" : "h-10 w-10 rounded-lg"} flex items-center justify-center bg-forge-500/15 ring-1 ring-forge-500/25`}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-forge-400">
                   <path d="M3 17h18v2H3v-2zm2-4h14l-2-6H7L5 13zm1-8h12v2H6V5z" fill="currentColor" />
                 </svg>
               </div>
-              <p className="font-sans text-sm font-semibold tracking-wide text-forge-400 uppercase">
-                DocForge
-              </p>
+              <div>
+                <p className={isAuthed ? "font-display text-4xl leading-none tracking-tight text-stone-50 sm:text-5xl" : "font-sans text-sm font-semibold uppercase tracking-wide text-forge-400"}>
+                  DocForge
+                </p>
+                {isAuthed && (
+                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-forge-400">
+                    Document vault
+                  </p>
+                )}
+              </div>
             </div>
-            <h1 className="font-display text-4xl tracking-tight text-stone-50 sm:text-5xl">
-              Your document vault
-            </h1>
-            <p className="max-w-lg text-base text-stone-400">
-              Upload, organize, and access your documents from anywhere.
-              Secured with row-level policies on Supabase.
-            </p>
+            {!isAuthed && (
+              <>
+                <h1 className="font-display text-4xl tracking-tight text-stone-50 sm:text-5xl">
+                  Your document vault
+                </h1>
+                <p className="max-w-lg text-base text-stone-400">
+                  Upload, organize, and access your documents from anywhere.
+                  Secured with row-level policies on Supabase.
+                </p>
+              </>
+            )}
           </div>
 
           {/* Auth card */}
           <div
-            className="animate-fade-up shrink-0 rounded-xl border border-stone-700/50 bg-stone-850/80 px-5 py-4 shadow-lg backdrop-blur-sm"
+            className={`animate-fade-up shrink-0 rounded-xl border border-stone-700/50 bg-stone-850/80 shadow-lg backdrop-blur-sm ${isAuthed ? "px-4 py-3" : "px-5 py-4"}`}
             style={{ animationDelay: "0.1s" }}
           >
             <div className="mb-3 text-sm text-stone-400">
@@ -184,7 +275,7 @@ export default async function Home({ searchParams }: PageProps) {
         </header>
 
         {/* ── Divider ── */}
-        <div className="h-px bg-gradient-to-r from-transparent via-stone-700/60 to-transparent" />
+        <div className={isAuthed ? "h-px bg-gradient-to-r from-forge-500/30 via-stone-700/60 to-transparent" : "h-px bg-gradient-to-r from-transparent via-stone-700/60 to-transparent"} />
 
         {!isAuthed ? (
           <>
@@ -246,107 +337,12 @@ export default async function Home({ searchParams }: PageProps) {
         ) : (
           /* ── Authenticated dashboard ── */
           <div className="flex flex-col gap-8">
-            {/* Upload + info row */}
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              <section className="animate-fade-up lg:col-span-1" style={{ animationDelay: "0.15s" }}>
-                <UploadSection />
-              </section>
-
-              <section className="animate-fade-up lg:col-span-2" style={{ animationDelay: "0.2s" }}>
-                <div className="card-glow overflow-hidden rounded-xl border border-stone-700/50 bg-stone-850/60 backdrop-blur-sm">
-                  <div className="border-b border-stone-700/40 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.14),transparent_34%),linear-gradient(180deg,rgba(28,25,23,0.3),rgba(28,25,23,0))] p-6">
-                    <div className="flex flex-col gap-5">
-                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div className="space-y-2">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-forge-400">
-                            Workspace Controls
-                          </p>
-                          <h2 className="font-display text-2xl text-stone-50">
-                            {formatDocumentCount(documents.length)}
-                          </h2>
-                          <p className="max-w-2xl text-sm leading-relaxed text-stone-400">
-                            Filter by text, file type, and sort order before moving into the document workspace below.
-                          </p>
-                          <p className="text-xs text-stone-500">
-                            Environment selection keeps your workspace context pinned while you review documents.
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {statusChips.map((chip) => (
-                            <span
-                              key={chip}
-                              className="rounded-full border border-stone-700/60 bg-stone-950/40 px-3 py-1.5 text-xs font-medium text-stone-300"
-                            >
-                              {chip}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <form className="grid gap-3 lg:grid-cols-[minmax(0,1.35fr)_auto_auto_auto_auto]" method="get">
-                        <div className="relative">
-                          <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                          </svg>
-                          <input
-                            type="text"
-                            name="q"
-                            defaultValue={search}
-                            placeholder="Search titles and indexed document content..."
-                            className="focus-ring w-full rounded-lg border border-stone-700/50 bg-stone-900/80 py-3 pl-9 pr-3 text-sm text-stone-200 placeholder-stone-500 transition focus:border-forge-500/40 focus:outline-none"
-                          />
-                        </div>
-                        <select
-                          name="sort"
-                          defaultValue={sort}
-                          className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-3 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
-                          aria-label="Sort documents"
-                        >
-                          <option value="date_desc">Newest</option>
-                          <option value="date_asc">Oldest</option>
-                          <option value="name_asc">Name (A-Z)</option>
-                          <option value="name_desc">Name (Z-A)</option>
-                          <option value="size_desc">Size (Largest)</option>
-                          <option value="size_asc">Size (Smallest)</option>
-                        </select>
-                        <select
-                          name="type"
-                          defaultValue={fileType}
-                          className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-3 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
-                          aria-label="Filter by file type"
-                        >
-                          <option value="all">All types</option>
-                          <option value="pdf">PDF</option>
-                          <option value="img">Images</option>
-                          <option value="txt">Text / Markdown</option>
-                          <option value="doc">Word Docs</option>
-                          <option value="other">Other</option>
-                        </select>
-                        <select
-                          name="env"
-                          defaultValue={environment}
-                          className="focus-ring rounded-lg border border-stone-700/50 bg-stone-900/80 px-3 py-3 text-sm text-stone-200 transition focus:border-forge-500/40 focus:outline-none"
-                          aria-label="Switch environment"
-                        >
-                          <option value="production">Production</option>
-                          <option value="staging">Staging</option>
-                          <option value="development">Development</option>
-                        </select>
-                        <button
-                          type="submit"
-                          className="focus-ring rounded-lg bg-forge-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-forge-500"
-                        >
-                          Search
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-
-                </div>
-              </section>
-            </div>
-
             {/* Folder tree + documents grid */}
-            <DashboardClient documents={documents} />
+            <DashboardClient
+              documents={documents}
+              workspaceControls={workspaceControls}
+              uploadSlot={<UploadSection />}
+            />
 
             {/* Reference Links Section */}
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
