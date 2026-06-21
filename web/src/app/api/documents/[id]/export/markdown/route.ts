@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { NotFoundError, ServerError, ValidationError } from "@/lib/errors";
+import { assertOwned, requireUser } from "@/lib/routeAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,8 +17,7 @@ export async function GET(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = await requireUser(supabase);
 
     const { data: doc, error: docError } = await supabase
       .from("documents")
@@ -24,15 +26,13 @@ export async function GET(
       .single();
 
     if (docError || !doc) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+      return errorResponse(new NotFoundError("Document not found"));
     }
-    if (doc.created_by !== user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    assertOwned(doc, user.id, "export this document");
 
     const ext = doc.storage_path.split(".").pop()?.toLowerCase() ?? "";
     if (!TEXT_EXTENSIONS.includes(ext)) {
-      return NextResponse.json({ error: "Markdown export is only available for text files" }, { status: 400 });
+      return errorResponse(new ValidationError("Markdown export is only available for text files"));
     }
 
     // Download the file content from storage
@@ -42,7 +42,7 @@ export async function GET(
       .download(doc.storage_path);
 
     if (downloadError || !fileData) {
-      return NextResponse.json({ error: "Could not download file" }, { status: 500 });
+      return errorResponse(new ServerError("Could not download file"));
     }
 
     const content = await fileData.text();
@@ -62,7 +62,6 @@ export async function GET(
       },
     });
   } catch (err) {
-    console.error("Export markdown error:", err);
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }

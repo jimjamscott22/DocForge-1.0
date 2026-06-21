@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
+import { handleRouteError } from "@/lib/apiResponse";
+import { requireUser } from "@/lib/routeAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,8 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = await requireUser(supabase);
 
     const userId = user.id;
     const now = new Date();
@@ -134,7 +135,6 @@ export async function GET() {
       weeklyDocuments,
     });
   } catch (err) {
-    console.error("Analytics GET error:", err);
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }

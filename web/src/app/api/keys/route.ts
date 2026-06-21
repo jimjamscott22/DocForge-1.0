@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import { createHash, randomBytes } from "crypto";
+import { handleRouteError } from "@/lib/apiResponse";
+import { requireUser } from "@/lib/routeAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,8 +10,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = await requireUser(supabase);
 
     const { data: keys, error } = await supabase
       .from("api_keys")
@@ -23,16 +24,14 @@ export async function GET() {
 
     return NextResponse.json({ keys: keys ?? [] });
   } catch (err) {
-    console.error("Keys GET error:", err);
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = await requireUser(supabase);
 
     const body = await request.json() as { name?: string };
     const name = body.name?.trim();
@@ -63,7 +62,6 @@ export async function POST(request: NextRequest) {
     // Return the full key ONCE — never stored
     return NextResponse.json({ key, rawKey }, { status: 201 });
   } catch (err) {
-    console.error("Keys POST error:", err);
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }

@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import {
-  AppError,
-  ErrorCode,
-  ErrorSeverity,
   NotFoundError,
   ServerError,
 } from "@/lib/errors";
-import { errorResponse } from "@/lib/apiResponse";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { assertOwned, requireUser } from "@/lib/routeAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,19 +17,7 @@ export async function GET(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResponse(
-        new AppError({
-          code: ErrorCode.UNAUTHORIZED,
-          severity: ErrorSeverity.HIGH,
-          userMessage: "Unauthorized",
-        })
-      );
-    }
+    const user = await requireUser(supabase);
 
     // Verify document ownership
     const { data: doc, error: docError } = await supabase
@@ -44,9 +30,7 @@ export async function GET(
       return errorResponse(new NotFoundError("Document not found"));
     }
 
-    if (doc.created_by !== user.id) {
-      return errorResponse(new NotFoundError("Document not found"));
-    }
+    assertOwned(doc, user.id, "view this document");
 
     const { data: versions, error } = await supabase
       .from("document_versions")
@@ -61,7 +45,6 @@ export async function GET(
 
     return NextResponse.json({ versions: versions ?? [] });
   } catch (err) {
-    console.error("Versions GET error:", err);
-    return errorResponse(new ServerError("An unexpected error occurred"));
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }

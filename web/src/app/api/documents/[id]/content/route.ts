@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import {
-  AppError,
-  ErrorCode,
-  ErrorSeverity,
   NotFoundError,
   ServerError,
   ValidationError,
 } from "@/lib/errors";
-import { errorResponse } from "@/lib/apiResponse";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { assertOwned, requireUser } from "@/lib/routeAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,19 +22,7 @@ export async function GET(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResponse(
-        new AppError({
-          code: ErrorCode.UNAUTHORIZED,
-          severity: ErrorSeverity.HIGH,
-          userMessage: "Unauthorized",
-        })
-      );
-    }
+    const user = await requireUser(supabase);
 
     const { data: doc, error: docError } = await supabase
       .from("documents")
@@ -47,6 +33,7 @@ export async function GET(
     if (docError || !doc) {
       return errorResponse(new NotFoundError("Document not found"));
     }
+    assertOwned(doc, user.id, "preview this document");
 
     // Verify the file is a text type
     const ext = doc.storage_path.split(".").pop()?.toLowerCase() ?? "";
@@ -86,7 +73,6 @@ export async function GET(
       totalBytes: doc.file_size_bytes,
     });
   } catch (err) {
-    console.error("Content preview error:", err);
-    return errorResponse(new ServerError("An unexpected error occurred"));
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }

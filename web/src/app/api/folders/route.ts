@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import {
-  AppError,
-  ErrorCode,
-  ErrorSeverity,
   ServerError,
   ValidationError,
 } from "@/lib/errors";
-import { errorResponse } from "@/lib/apiResponse";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { requireUser } from "@/lib/routeAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,12 +13,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return errorResponse(
-        new AppError({ code: ErrorCode.UNAUTHORIZED, severity: ErrorSeverity.HIGH, userMessage: "Unauthorized" })
-      );
-    }
+    const user = await requireUser(supabase);
 
     const { data: folders, error } = await supabase
       .from("folders")
@@ -35,20 +28,14 @@ export async function GET() {
 
     return NextResponse.json({ folders: folders ?? [] });
   } catch (err) {
-    console.error("Folders GET error:", err);
-    return errorResponse(new ServerError("An unexpected error occurred"));
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return errorResponse(
-        new AppError({ code: ErrorCode.UNAUTHORIZED, severity: ErrorSeverity.HIGH, userMessage: "Unauthorized" })
-      );
-    }
+    const user = await requireUser(supabase);
 
     const body = await request.json() as { name?: string; parent_id?: string | null };
     const name = body.name?.trim();
@@ -73,7 +60,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ folder }, { status: 201 });
   } catch (err) {
-    console.error("Folders POST error:", err);
-    return errorResponse(new ServerError("An unexpected error occurred"));
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }

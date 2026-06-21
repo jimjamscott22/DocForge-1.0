@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import {
-  AppError,
-  ErrorCode,
-  ErrorSeverity,
   NotFoundError,
   ServerError,
 } from "@/lib/errors";
-import { errorResponse } from "@/lib/apiResponse";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { requireUser } from "@/lib/routeAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,19 +17,7 @@ export async function POST(
   try {
     const { id, versionId } = await params;
     const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResponse(
-        new AppError({
-          code: ErrorCode.UNAUTHORIZED,
-          severity: ErrorSeverity.HIGH,
-          userMessage: "Unauthorized",
-        })
-      );
-    }
+    const user = await requireUser(supabase);
 
     const { data, error } = await supabase.rpc("restore_document_version", {
       p_document_id: id,
@@ -49,7 +35,6 @@ export async function POST(
 
     return NextResponse.json({ document: data });
   } catch (err) {
-    console.error("Version restore error:", err);
-    return errorResponse(new ServerError("An unexpected error occurred"));
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }

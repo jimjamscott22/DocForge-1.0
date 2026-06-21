@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { NotFoundError, ServerError } from "@/lib/errors";
+import { assertOwned, requireUser } from "@/lib/routeAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,8 +18,7 @@ export async function GET(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const user = await requireUser(supabase);
 
     const { data: doc, error: docError } = await supabase
       .from("documents")
@@ -25,11 +27,9 @@ export async function GET(
       .single();
 
     if (docError || !doc) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+      return errorResponse(new NotFoundError("Document not found"));
     }
-    if (doc.created_by !== user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    assertOwned(doc, user.id, "export this document");
 
     const ext = doc.storage_path.split(".").pop()?.toLowerCase() ?? "";
 
@@ -41,7 +41,7 @@ export async function GET(
         .createSignedUrl(doc.storage_path, 3600, { download: `${doc.title}.pdf` });
 
       if (signedUrlError || !signedUrlData?.signedUrl) {
-        return NextResponse.json({ error: "Could not generate download link" }, { status: 500 });
+        return errorResponse(new ServerError("Could not generate download link"));
       }
 
       // Track analytics (fire-and-forget)
@@ -60,7 +60,6 @@ export async function GET(
       { status: 501 }
     );
   } catch (err) {
-    console.error("Export PDF error:", err);
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }

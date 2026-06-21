@@ -7,7 +7,7 @@ Status legend: ⬜ todo · 🔄 in progress · ✅ done · ⏭️ deferred
 
 ## High impact
 
-### 1. Duplicated auth + ownership boilerplate across API routes — 🔄
+### 1. Duplicated auth + ownership boilerplate across API routes — ✅
 Every session route repeats the same ~12-line block: build server client → `getUser()` →
 `if (!user) return errorResponse(...)`. 16 routes call `getUser()` inline; 5 repeat the
 "You must be signed in" message; 5 repeat the `created_by !== user.id` ownership check.
@@ -87,3 +87,6 @@ Only `uploadMime.test.ts`. Pure functions (`extractTextFromHtml`, `sortDocuments
 
 - _2026-06-17_ — Review completed; tracker created. Starting with the safe pure-refactor slice:
   #6 (storage), #4 (format), #5 (fileType), #1 (requireUser), #14 (tests).
+- _2026-06-21_ — Completed #1 for session API routes: all non-v1 routes now use
+  `requireUser`, repeated document ownership checks use `assertOwned`, route auth errors are
+  handled through `handleRouteError`, and `routeAuth` has focused tests.

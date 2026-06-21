@@ -28,3 +28,17 @@ export async function requireUser(
 
   return user;
 }
+
+export function assertOwned(
+  record: { created_by: string | null },
+  userId: string,
+  action = "access this resource"
+) {
+  if (record.created_by !== userId) {
+    throw new AppError({
+      code: ErrorCode.UNAUTHORIZED,
+      severity: ErrorSeverity.HIGH,
+      userMessage: `You do not have permission to ${action}`,
+    });
+  }
+}

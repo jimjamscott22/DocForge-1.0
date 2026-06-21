@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import {
-  AppError,
-  ErrorCode,
-  ErrorSeverity,
-  AuthError,
   NotFoundError,
   ServerError,
 } from "@/lib/errors";
-import { errorResponse } from "@/lib/apiResponse";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { assertOwned, requireUser } from "@/lib/routeAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,16 +17,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return errorResponse(
-        new AppError({
-          code: ErrorCode.UNAUTHORIZED,
-          severity: ErrorSeverity.HIGH,
-          userMessage: "You must be signed in to move documents",
-        })
-      );
-    }
+    const user = await requireUser(supabase, "move documents");
 
     const body = await request.json() as { folder_id?: string | null };
     const folder_id = body.folder_id ?? null;
@@ -44,9 +32,7 @@ export async function PATCH(
     if (docError || !doc) {
       return errorResponse(new NotFoundError("Document not found"));
     }
-    if (doc.created_by !== user.id) {
-      return errorResponse(new AuthError("You do not have permission to move this document"));
-    }
+    assertOwned(doc, user.id, "move this document");
 
     // If folder_id is specified, verify it belongs to user
     if (folder_id) {
@@ -72,7 +58,6 @@ export async function PATCH(
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Move document error:", err);
-    return errorResponse(new ServerError("An unexpected error occurred"));
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }

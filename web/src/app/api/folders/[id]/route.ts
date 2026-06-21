@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import {
-  AppError,
-  ErrorCode,
-  ErrorSeverity,
   NotFoundError,
   ServerError,
   ValidationError,
 } from "@/lib/errors";
-import { errorResponse } from "@/lib/apiResponse";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { requireUser } from "@/lib/routeAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,12 +18,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return errorResponse(
-        new AppError({ code: ErrorCode.UNAUTHORIZED, severity: ErrorSeverity.HIGH, userMessage: "Unauthorized" })
-      );
-    }
+    const user = await requireUser(supabase);
 
     const body = await request.json() as { name?: string };
     const name = body.name?.trim();
@@ -45,8 +38,7 @@ export async function PATCH(
 
     return NextResponse.json({ folder });
   } catch (err) {
-    console.error("Folder PATCH error:", err);
-    return errorResponse(new ServerError("An unexpected error occurred"));
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }
 
@@ -57,12 +49,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return errorResponse(
-        new AppError({ code: ErrorCode.UNAUTHORIZED, severity: ErrorSeverity.HIGH, userMessage: "Unauthorized" })
-      );
-    }
+    const user = await requireUser(supabase);
 
     // Move documents in this folder to null (root)
     await supabase
@@ -100,7 +87,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("Folder DELETE error:", err);
-    return errorResponse(new ServerError("An unexpected error occurred"));
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }

@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import {
-  AppError,
-  ErrorCode,
-  ErrorSeverity,
   NotFoundError,
   ServerError,
 } from "@/lib/errors";
 import { errorResponse, handleRouteError } from "@/lib/apiResponse";
-import { requireUser } from "@/lib/routeAuth";
+import { assertOwned, requireUser } from "@/lib/routeAuth";
 import { BUCKET_NAME } from "@/lib/storage";
 
 export const runtime = "nodejs";
@@ -34,15 +31,7 @@ export async function DELETE(
       return errorResponse(new NotFoundError("Document not found"));
     }
 
-    if (doc.created_by !== user.id) {
-      return errorResponse(
-        new AppError({
-          code: ErrorCode.UNAUTHORIZED,
-          severity: ErrorSeverity.HIGH,
-          userMessage: "You do not have permission to delete this document",
-        })
-      );
-    }
+    assertOwned(doc, user.id, "delete this document");
 
     // Delete document record from database first — DB is the source of truth.
     // If this fails, storage is untouched and we can return a clean error.

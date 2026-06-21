@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import {
-  AppError,
-  ErrorCode,
-  ErrorSeverity,
   NotFoundError,
   ServerError,
 } from "@/lib/errors";
-import { errorResponse } from "@/lib/apiResponse";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { assertOwned, requireUser } from "@/lib/routeAuth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,19 +21,7 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const eventType = searchParams.get("event") ?? "download";
     const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return errorResponse(
-        new AppError({
-          code: ErrorCode.UNAUTHORIZED,
-          severity: ErrorSeverity.HIGH,
-          userMessage: "Unauthorized",
-        })
-      );
-    }
+    const user = await requireUser(supabase);
 
     // Fetch document metadata
     const { data: doc, error: docError } = await supabase
@@ -47,6 +33,7 @@ export async function GET(
     if (docError || !doc) {
       return errorResponse(new NotFoundError("Document not found"));
     }
+    assertOwned(doc, user.id, "download this document");
 
     // Generate a signed URL (valid for 1 hour)
     const { data: signedUrlData, error: signedUrlError } = await supabase
@@ -72,7 +59,6 @@ export async function GET(
       title: doc.title,
     });
   } catch (err) {
-    console.error("Download error:", err);
-    return errorResponse(new ServerError("An unexpected error occurred"));
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }
