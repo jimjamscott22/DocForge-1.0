@@ -24,7 +24,21 @@
       "Bash(node -e \"const pp = require\\(''pdf-parse''\\); const p = new pp.PDFParse\\(\\); console.log\\(typeof p.loadPDF, typeof p.parseBuffer\\)\")",
       "Bash(npx tsc *)",
       "Bash(ls -la .env*)",
-      "Bash(sed -E 's/\\(=\\).+/\\\\1<redacted>/' .env.local)"
+      "Bash(sed -E 's/\\(=\\).+/\\\\1<redacted>/' .env.local)",
+      "Bash(git -C /home/jimjamscozz22/Desktop/GitHub/repo/DocForge-1.0 rev-parse --show-toplevel)",
+      "Bash(cat \"$\\(git -C /home/jimjamscozz22/Desktop/GitHub/repo/DocForge-1.0 rev-parse --show-toplevel\\)/.superpowers/sdd/progress.md\")",
+      "Bash(git -C /home/jimjamscozz22/Desktop/GitHub/repo/DocForge-1.0 log --oneline -5)",
+      "Bash(bash /home/jimjamscozz22/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/task-brief /home/jimjamscozz22/Desktop/GitHub/repo/DocForge-1.0/docs/superpowers/plans/2026-06-29-finish-safe-refactor-slice.md 1)",
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git -C /home/jimjamscozz22/Desktop/GitHub/repo/DocForge-1.0 log --oneline -1)",
+      "Bash(bash /home/jimjamscozz22/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/task-brief /home/jimjamscozz22/Desktop/GitHub/repo/DocForge-1.0/docs/superpowers/plans/2026-06-29-finish-safe-refactor-slice.md 2)",
+      "Bash(node -e ' *)",
+      "Bash(npx tsx *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git -C /home/jimjamscozz22/Desktop/GitHub/repo/DocForge-1.0 add docs/REFACTORING.md)",
+      "Bash(git -C /home/jimjamscozz22/Desktop/GitHub/repo/DocForge-1.0 commit -m \"docs: mark #4 #5 #6 complete, update #14 progress and changelog\")"
     ]
   },
   "enabledMcpjsonServers": [
