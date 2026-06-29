@@ -3,11 +3,11 @@ import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import { errorResponse, handleRouteError } from "@/lib/apiResponse";
 import { NotFoundError, ServerError, ValidationError } from "@/lib/errors";
 import { assertOwned, requireUser } from "@/lib/routeAuth";
+import { BUCKET_NAME } from "@/lib/storage";
+import { getFileExtension } from "@/lib/fileType";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const BUCKET_NAME = "DocForgeVault";
 const TEXT_EXTENSIONS = ["txt", "md"];
 
 export async function GET(
@@ -30,7 +30,7 @@ export async function GET(
     }
     assertOwned(doc, user.id, "export this document");
 
-    const ext = doc.storage_path.split(".").pop()?.toLowerCase() ?? "";
+    const ext = getFileExtension(doc.storage_path);
     if (!TEXT_EXTENSIONS.includes(ext)) {
       return errorResponse(new ValidationError("Markdown export is only available for text files"));
     }

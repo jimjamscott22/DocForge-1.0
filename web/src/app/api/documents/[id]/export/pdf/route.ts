@@ -3,11 +3,11 @@ import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import { errorResponse, handleRouteError } from "@/lib/apiResponse";
 import { NotFoundError, ServerError } from "@/lib/errors";
 import { assertOwned, requireUser } from "@/lib/routeAuth";
+import { BUCKET_NAME } from "@/lib/storage";
+import { getFileExtension } from "@/lib/fileType";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const BUCKET_NAME = "DocForgeVault";
 
 // PDF export: for .pdf files returns signed URL; for other types returns 501
 // (no PDF generation library available without additional installation)
@@ -31,7 +31,7 @@ export async function GET(
     }
     assertOwned(doc, user.id, "export this document");
 
-    const ext = doc.storage_path.split(".").pop()?.toLowerCase() ?? "";
+    const ext = getFileExtension(doc.storage_path);
 
     if (ext === "pdf") {
       // Return signed URL for direct PDF download

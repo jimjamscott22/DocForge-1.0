@@ -7,11 +7,11 @@ import {
 } from "@/lib/errors";
 import { errorResponse, handleRouteError } from "@/lib/apiResponse";
 import { assertOwned, requireUser } from "@/lib/routeAuth";
+import { BUCKET_NAME } from "@/lib/storage";
+import { getFileExtension } from "@/lib/fileType";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const BUCKET_NAME = "DocForgeVault";
 const TEXT_EXTENSIONS = ["txt", "md"];
 const MAX_PREVIEW_BYTES = 512 * 1024; // 512 KB preview limit
 
@@ -36,7 +36,7 @@ export async function GET(
     assertOwned(doc, user.id, "preview this document");
 
     // Verify the file is a text type
-    const ext = doc.storage_path.split(".").pop()?.toLowerCase() ?? "";
+    const ext = getFileExtension(doc.storage_path);
     if (!TEXT_EXTENSIONS.includes(ext)) {
       return errorResponse(
         new ValidationError("Preview is only available for text and markdown files")

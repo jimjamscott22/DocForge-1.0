@@ -6,11 +6,10 @@ import {
 } from "@/lib/errors";
 import { errorResponse, handleRouteError } from "@/lib/apiResponse";
 import { assertOwned, requireUser } from "@/lib/routeAuth";
+import { BUCKET_NAME } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const BUCKET_NAME = "DocForgeVault";
 
 export async function GET(
   request: Request,

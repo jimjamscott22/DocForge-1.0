@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdminClient";
 import { authenticateApiKey } from "@/lib/apiKeyAuth";
+import { BUCKET_NAME } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const BUCKET_NAME = "DocForgeVault";
 
 export async function GET(
   request: NextRequest,
