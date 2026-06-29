@@ -32,17 +32,17 @@ routes use the structured `errorResponse`/`AppError` system. Normalize v1 onto t
 
 ## Medium impact
 
-### 4. Duplicated formatting helpers (`formatBytes`) — 🔄
+### 4. Duplicated formatting helpers (`formatBytes`) — ✅
 Defined 3× (`documentTableTypes.tsx`, `AnalyticsDashboard.tsx`, `VersionHistoryModal.tsx`)
 plus a 4th variant `formatFileSize` in `UploadForm.tsx`.
 - **Plan:** consolidate into `src/lib/format.ts`.
 
-### 5. File-type / extension logic open-coded in 8 files — 🔄
+### 5. File-type / extension logic open-coded in 8 files — ✅
 `path.split(".").pop()` and file-type mapping repeated across `page.tsx`, `DocumentTableCore.tsx`,
 `ExportButton.tsx`, and several routes.
 - **Plan:** `src/lib/fileType.ts` with `getFileExtension`, `getFileTypeFromPath`, `getFileIcon`.
 
-### 6. `BUCKET_NAME` redeclared in 9 files — 🔄
+### 6. `BUCKET_NAME` redeclared in 9 files — ✅
 `const BUCKET_NAME = "DocForgeVault"` copy-pasted across routes.
 - **Plan:** `src/lib/storage.ts` exporting `BUCKET_NAME`.
 
@@ -80,6 +80,7 @@ ESM consistency in `textExtractor.ts`.
 Only `uploadMime.test.ts`. Pure functions (`extractTextFromHtml`, `sortDocuments`,
 `isBlockedHostname`, `formatBytes`, file-type helpers) are easily testable.
 - **Plan:** add tests alongside each extracted helper; widen the `test` npm script to all `*.test.ts`.
+- `format.test.ts` and `fileType.test.ts` added (28 tests total across 4 files). Remaining: `sortDocuments`, `extractTextFromHtml`, `isBlockedHostname`.
 
 ---
 
@@ -90,3 +91,7 @@ Only `uploadMime.test.ts`. Pure functions (`extractTextFromHtml`, `sortDocuments
 - _2026-06-21_ — Completed #1 for session API routes: all non-v1 routes now use
   `requireUser`, repeated document ownership checks use `assertOwned`, route auth errors are
   handled through `handleRouteError`, and `routeAuth` has focused tests.
+- _2026-06-29_ — Completed #4, #5, #6: all remaining inline `BUCKET_NAME`, `formatBytes`/`formatFileSize`,
+  and `.split(".").pop()` extension patterns migrated to shared lib helpers. Also fixed
+  `getFileExtension` to return `""` for paths with no extension. Added tests for `format.ts`
+  and `fileType.ts` (partial progress on #14 — 28 tests across 4 files).
