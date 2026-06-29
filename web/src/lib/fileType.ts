@@ -3,8 +3,10 @@
 export type FileFilterOption = "all" | "pdf" | "img" | "txt" | "doc" | "other";
 
 /** Lowercased extension without the dot, or "" when there is none. */
-export const getFileExtension = (path: string): string =>
-  path.split(".").pop()?.toLowerCase() ?? "";
+export const getFileExtension = (path: string): string => {
+  const parts = path.split(".");
+  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
+};
 
 /**
  * Map an extension to its category. The caller supplies the label used for
