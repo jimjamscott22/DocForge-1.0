@@ -6,6 +6,8 @@ import { useToast } from "./ToastProvider";
 import { useErrorHandler } from "./ErrorProvider";
 import { parseApiError } from "@/lib/errors";
 import { Spinner } from "./Spinner";
+import { formatBytes } from "@/lib/format";
+import { getFileExtension } from "@/lib/fileType";
 
 type Status = "idle" | "uploading" | "success" | "error";
 
@@ -33,14 +35,8 @@ export default function UploadForm() {
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const dragCounterRef = useRef(0);
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
-  };
-
   const validateFile = (file: File): string | null => {
-    const ext = "." + file.name.split(".").pop()?.toLowerCase();
+    const ext = "." + getFileExtension(file.name);
     if (!ALLOWED_EXTENSIONS.has(ext)) {
       return `File type "${ext}" is not supported.`;
     }
@@ -269,7 +265,7 @@ export default function UploadForm() {
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs text-stone-400">
               <span>Uploading&hellip;</span>
-              <span className="font-mono">{formatFileSize(progress.loaded)} / {formatFileSize(progress.total)}</span>
+              <span className="font-mono">{formatBytes(progress.loaded)} / {formatBytes(progress.total)}</span>
             </div>
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-stone-800">
               <div
