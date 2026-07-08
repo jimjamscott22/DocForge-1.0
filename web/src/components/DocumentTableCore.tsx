@@ -100,7 +100,7 @@ export default function DocumentTableCore({
               />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <FileTypeIcon type={getFileIcon(doc.storage_path)} />
+                  <FileTypeIcon type={getFileIcon(doc.storage_path)} extension={getFileExtension(doc.storage_path)} />
                   <h3 className="truncate text-sm font-semibold text-stone-100">{doc.title}</h3>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs text-stone-400">
@@ -182,7 +182,7 @@ export default function DocumentTableCore({
                 </td>
                 <td className="px-4 py-3.5 font-medium text-stone-100">{doc.title}</td>
                 <td className="hidden px-4 py-3.5 sm:table-cell">
-                  <FileTypeIcon type={getFileIcon(doc.storage_path)} />
+                  <FileTypeIcon type={getFileIcon(doc.storage_path)} extension={getFileExtension(doc.storage_path)} />
                 </td>
                 <td className="px-4 py-3.5 font-mono text-xs text-stone-400">
                   {formatBytes(doc.file_size_bytes)}

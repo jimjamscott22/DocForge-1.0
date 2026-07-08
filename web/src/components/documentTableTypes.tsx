@@ -14,7 +14,7 @@ export type DocumentRow = {
 export const formatDate = (value: string) =>
   new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
 
-export const FileTypeIcon = ({ type }: { type: string }) => {
+export const FileTypeIcon = ({ type, extension }: { type: string; extension?: string }) => {
   const colors: Record<string, string> = {
     pdf: "text-red-400 bg-red-400/10",
     img: "text-violet-400 bg-violet-400/10",
@@ -31,11 +31,13 @@ export const FileTypeIcon = ({ type }: { type: string }) => {
     file: "FILE",
   };
 
+  const label = extension ? extension.toUpperCase() : labels[type];
+
   return (
     <span
       className={`inline-flex items-center justify-center rounded px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-wider ${colors[type]}`}
     >
-      {labels[type]}
+      {label}
     </span>
   );
 };
