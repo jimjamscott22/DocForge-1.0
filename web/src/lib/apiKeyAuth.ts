@@ -1,20 +1,22 @@
 import { createHash } from "crypto";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdminClient";
+import { AuthError } from "@/lib/errors";
 
-export type ApiKeyAuthResult =
-  | { success: true; userId: string }
-  | { success: false; error: string; status: number };
+const LAST_USED_THROTTLE_MS = 60_000;
 
-export async function authenticateApiKey(
-  authHeader: string | null
-): Promise<ApiKeyAuthResult> {
+/**
+ * Authenticate a v1 API request via `Authorization: Bearer <key>`.
+ * Throws an {@link AuthError} on failure so callers can rely on a single
+ * catch block + `handleRouteError`, mirroring the session-route `requireUser` pattern.
+ */
+export async function authenticateApiKey(authHeader: string | null): Promise<string> {
   if (!authHeader?.startsWith("Bearer ")) {
-    return { success: false, error: "Missing or invalid Authorization header", status: 401 };
+    throw new AuthError("Missing or invalid Authorization header");
   }
 
   const rawKey = authHeader.slice(7).trim();
   if (!rawKey) {
-    return { success: false, error: "Missing API key", status: 401 };
+    throw new AuthError("Missing API key");
   }
 
   const keyHash = createHash("sha256").update(rawKey).digest("hex");
@@ -22,23 +24,26 @@ export async function authenticateApiKey(
   const supabase = createSupabaseAdminClient();
   const { data: key, error } = await supabase
     .from("api_keys")
-    .select("id,user_id,is_active")
+    .select("id,user_id,is_active,last_used_at")
     .eq("key_hash", keyHash)
     .single();
 
   if (error || !key) {
-    return { success: false, error: "Invalid API key", status: 401 };
+    throw new AuthError("Invalid API key");
   }
 
   if (!key.is_active) {
-    return { success: false, error: "API key has been revoked", status: 401 };
+    throw new AuthError("API key has been revoked");
   }
 
-  // Update last_used_at asynchronously
-  void supabase
-    .from("api_keys")
-    .update({ last_used_at: new Date().toISOString() })
-    .eq("id", key.id);
+  // Throttle last_used_at writes to avoid an UPDATE on every request
+  const lastUsedMs = key.last_used_at ? new Date(key.last_used_at).getTime() : 0;
+  if (Date.now() - lastUsedMs > LAST_USED_THROTTLE_MS) {
+    void supabase
+      .from("api_keys")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("id", key.id);
+  }
 
-  return { success: true, userId: key.user_id };
+  return key.user_id;
 }

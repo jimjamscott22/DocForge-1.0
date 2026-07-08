@@ -4,6 +4,8 @@ import UploadSection from "@/components/UploadSection";
 import DashboardClient from "@/components/DashboardClient";
 import ReferenceLinksSidebar from "@/components/ReferenceLinksSidebar";
 import { getFileTypeFromPath, type FileFilterOption } from "@/lib/fileType";
+import { AnvilIcon, CloudIcon, InfoCircleIcon, SearchIcon, ShieldCheckIcon } from "@/components/icons";
+import { sortDocuments, type SortOption } from "@/lib/sortDocuments";
 
 export const dynamic = "force-dynamic";
 
@@ -16,39 +18,19 @@ type DocumentRow = {
   folder_id?: string | null;
 };
 
+type FolderRow = {
+  id: string;
+  name: string;
+  parent_id: string | null;
+};
+
 type PageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-type SortOption = "date_desc" | "date_asc" | "name_asc" | "name_desc" | "size_desc" | "size_asc";
 type EnvironmentOption = "production" | "staging" | "development";
 
 const formatDocumentCount = (count: number) => `${count} document${count === 1 ? "" : "s"}`;
-
-const sortDocuments = (documents: DocumentRow[], sort: SortOption) => {
-  const sorted = [...documents];
-
-  sorted.sort((a, b) => {
-    switch (sort) {
-      case "date_asc":
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-      case "date_desc":
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      case "name_asc":
-        return a.title.localeCompare(b.title);
-      case "name_desc":
-        return b.title.localeCompare(a.title);
-      case "size_asc":
-        return (a.file_size_bytes ?? 0) - (b.file_size_bytes ?? 0);
-      case "size_desc":
-        return (b.file_size_bytes ?? 0) - (a.file_size_bytes ?? 0);
-      default:
-        return 0;
-    }
-  });
-
-  return sorted;
-};
 
 async function getData(search: string, sort: SortOption, fileType: FileFilterOption) {
   const supabase = await createSupabaseServerClient();
@@ -62,46 +44,40 @@ async function getData(search: string, sort: SortOption, fileType: FileFilterOpt
   }
 
   if (!user) {
-    return { user: null, documents: [] as DocumentRow[] };
+    return { user: null, documents: [] as DocumentRow[], folders: [] as FolderRow[] };
   }
 
-  if (search) {
-    // Full-text search with relevance ranking
-    const { data: documents = [], error } = await supabase
-      .rpc("search_documents", {
+  const { data: folders, error: foldersError } = await supabase
+    .from("folders")
+    .select("id,name,parent_id")
+    .eq("user_id", user.id)
+    .order("name");
+
+  if (foldersError) {
+    console.error("Failed to load folders", foldersError);
+  }
+
+  const { data: documents, error } = search
+    ? await supabase.rpc("search_documents", {
         search_query: search,
         user_id: user.id,
-      });
-
-    if (error) {
-      console.error("Failed to search documents", error);
-    }
-
-    const filtered = (documents || []).filter((doc: DocumentRow) => {
-      if (fileType === "all") return true;
-      return getFileTypeFromPath(doc.storage_path) === fileType;
-    });
-
-    return { user, documents: sortDocuments(filtered, sort) };
-  }
-
-  // No search term — return all documents sorted by date
-  const { data: documents = [], error } = await supabase
-    .from("documents")
-    .select("id,title,storage_path,file_size_bytes,created_at,folder_id")
-    .eq("created_by", user.id)
-    .order("created_at", { ascending: false });
+      })
+    : await supabase
+        .from("documents")
+        .select("id,title,storage_path,file_size_bytes,created_at,folder_id")
+        .eq("created_by", user.id)
+        .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Failed to load documents", error);
+    console.error(search ? "Failed to search documents" : "Failed to load documents", error);
   }
 
-  const filtered = (documents || []).filter((doc) => {
+  const filtered: DocumentRow[] = (documents || []).filter((doc: DocumentRow) => {
     if (fileType === "all") return true;
     return getFileTypeFromPath(doc.storage_path) === fileType;
   });
 
-  return { user, documents: sortDocuments(filtered, sort) };
+  return { user, documents: sortDocuments<DocumentRow>(filtered, sort), folders: folders ?? [] };
 }
 
 export default async function Home({ searchParams }: PageProps) {
@@ -121,7 +97,7 @@ export default async function Home({ searchParams }: PageProps) {
     ? (envParam as EnvironmentOption)
     : "production";
 
-  const { user, documents } = await getData(search, sort, fileType);
+  const { user, documents, folders } = await getData(search, sort, fileType);
 
   const isAuthed = Boolean(user);
   const totalStorageBytes = documents.reduce((total, document) => total + (document.file_size_bytes ?? 0), 0);
@@ -156,9 +132,7 @@ export default async function Home({ searchParams }: PageProps) {
       </div>
       <form className="grid gap-3 xl:grid-cols-[minmax(14rem,1.4fr)_auto_auto_auto_auto]" method="get">
         <div className="relative">
-          <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
           <input
             type="text"
             name="q"
@@ -225,9 +199,7 @@ export default async function Home({ searchParams }: PageProps) {
             <div className="flex items-center gap-3">
               {/* Anvil / forge icon */}
               <div className={`${isAuthed ? "h-11 w-11 rounded-xl" : "h-10 w-10 rounded-lg"} flex items-center justify-center bg-forge-500/15 ring-1 ring-forge-500/25`}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-forge-400">
-                  <path d="M3 17h18v2H3v-2zm2-4h14l-2-6H7L5 13zm1-8h12v2H6V5z" fill="currentColor" />
-                </svg>
+                <AnvilIcon className="text-forge-400" />
               </div>
               <div>
                 <p className={isAuthed ? "font-display text-4xl leading-none tracking-tight text-stone-50 sm:text-5xl" : "font-sans text-sm font-semibold uppercase tracking-wide text-forge-400"}>
@@ -309,21 +281,15 @@ export default async function Home({ searchParams }: PageProps) {
               <h3 className="font-display text-xl text-stone-50">Why sign in?</h3>
               <ul className="mt-5 space-y-4 text-sm text-stone-400">
                 <li className="flex gap-3">
-                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-forge-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
+                  <ShieldCheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-forge-400" />
                   <span>Documents scoped to your account with RLS security</span>
                 </li>
                 <li className="flex gap-3">
-                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-forge-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
-                  </svg>
+                  <CloudIcon className="mt-0.5 h-4 w-4 shrink-0 text-forge-400" />
                   <span>Cloud storage accessible from any device</span>
                 </li>
                 <li className="flex gap-3">
-                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-forge-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                  <SearchIcon className="mt-0.5 h-4 w-4 shrink-0 text-forge-400" />
                   <span>Search and browse your personal library</span>
                 </li>
               </ul>
@@ -340,6 +306,7 @@ export default async function Home({ searchParams }: PageProps) {
             {/* Folder tree + documents grid */}
             <DashboardClient
               documents={documents}
+              initialFolders={folders}
               workspaceControls={workspaceControls}
               uploadSlot={<UploadSection />}
             />
@@ -349,9 +316,7 @@ export default async function Home({ searchParams }: PageProps) {
               <section className="animate-fade-up lg:col-span-1" style={{ animationDelay: "0.25s" }}>
                 <div className="card-glow rounded-xl border border-stone-700/50 bg-stone-850/60 p-6 backdrop-blur-sm lg:sticky lg:top-6">
                   <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-forge-500/15 ring-1 ring-forge-500/20">
-                    <svg className="h-5 w-5 text-forge-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <InfoCircleIcon className="h-5 w-5 text-forge-400" />
                   </div>
                   <h2 className="font-display text-xl text-stone-50">Reference Rail</h2>
                   <p className="mt-3 text-sm leading-relaxed text-stone-400">

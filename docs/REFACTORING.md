@@ -15,7 +15,7 @@ Every session route repeats the same ~12-line block: build server client → `ge
   Optionally a `withRouteErrorHandling` wrapper to collapse the repeated top-level try/catch.
 - **Files:** all of `src/app/api/**/route.ts` (session routes).
 
-### 2. Two parallel auth mechanisms / inconsistent error envelopes — ⬜
+### 2. Two parallel auth mechanisms / inconsistent error envelopes — ✅
 `/api/v1/*` routes use `authenticateApiKey` and return bare `{ error }` JSON, while session
 routes use the structured `errorResponse`/`AppError` system. Normalize v1 onto the same envelope.
 - **Files:** `src/app/api/v1/**`, `src/lib/apiKeyAuth.ts`.
@@ -46,15 +46,15 @@ plus a 4th variant `formatFileSize` in `UploadForm.tsx`.
 `const BUCKET_NAME = "DocForgeVault"` copy-pasted across routes.
 - **Plan:** `src/lib/storage.ts` exporting `BUCKET_NAME`.
 
-### 7. `DocumentTableCore` renders the action toolbar twice — ⬜
+### 7. `DocumentTableCore` renders the action toolbar twice — ✅
 Mobile-card and desktop-table branches each render Preview/Export/View/History/Delete (~25 dup lines).
 - **Plan:** extract `<DocumentActions doc onVersionHistory />`.
 
-### 8. `getData`'s two branches duplicate the filter+sort tail — ⬜
+### 8. `getData`'s two branches duplicate the filter+sort tail — ✅
 Search branch and no-search branch end with identical `filter → sortDocuments`.
 - **Plan:** collapse to one tail after the branch selects the source query.
 
-### 9. `last_used_at` write on every API-key request — ⬜
+### 9. `last_used_at` write on every API-key request — ✅
 `apiKeyAuth.ts` issues an `UPDATE` on every authenticated v1 request (write amplification).
 - **Plan:** throttle — only update if `last_used_at` is older than ~1 min.
 
@@ -62,25 +62,29 @@ Search branch and no-search branch end with identical `filter → sortDocuments`
 
 ## Lower impact / polish
 
-### 10. No `middleware.ts` for Supabase session refresh — ⬜
+### 10. No `middleware.ts` for Supabase session refresh — ✅
 Recommended `@supabase/ssr` pattern refreshes the auth cookie on navigation; without it sessions
 can silently expire mid-use.
+- Implemented as `src/proxy.ts` (Next.js 16 renamed the `middleware.ts` file convention to
+  `proxy.ts` / `export function proxy`; `middleware.ts` still works but is deprecated).
 
-### 11. Repeated inline SVGs — ⬜
+### 11. Repeated inline SVGs — ✅
 Chevrons, search, anvil etc. duplicated throughout `page.tsx` / `DashboardClient.tsx`.
 - **Plan:** extract an `icons.tsx` set.
 
-### 12. `DashboardClient` re-fetches `/api/folders` on mount — ⬜
+### 12. `DashboardClient` re-fetches `/api/folders` on mount — ✅
 `page.tsx` (server) could pass folders down as props instead of a client round-trip (small N+1).
 
-### 13. `pdf-parse` lazy `require()` → `await import()` — ⬜
+### 13. `pdf-parse` lazy `require()` → `await import()` — ✅
 ESM consistency in `textExtractor.ts`.
 
-### 14. Thin test coverage — 🔄
+### 14. Thin test coverage — ✅
 Only `uploadMime.test.ts`. Pure functions (`extractTextFromHtml`, `sortDocuments`,
 `isBlockedHostname`, `formatBytes`, file-type helpers) are easily testable.
 - **Plan:** add tests alongside each extracted helper; widen the `test` npm script to all `*.test.ts`.
-- `format.test.ts` and `fileType.test.ts` added (28 tests total across 4 files). Remaining: `sortDocuments`, `extractTextFromHtml`, `isBlockedHostname`.
+- `sortDocuments` extracted to `src/lib/sortDocuments.ts`, `isBlockedHostname` extracted to
+  `src/lib/urlSafety.ts`, both now unit-tested alongside `extractTextFromHtml`. 56 tests total
+  across 8 files.
 
 ---
 
@@ -95,3 +99,18 @@ Only `uploadMime.test.ts`. Pure functions (`extractTextFromHtml`, `sortDocuments
   and `.split(".").pop()` extension patterns migrated to shared lib helpers. Also fixed
   `getFileExtension` to return `""` for paths with no extension. Added tests for `format.ts`
   and `fileType.ts` (partial progress on #14 — 28 tests across 4 files).
+- _2026-07-07_ — Completed #2, #7, #8, #9, #10, #11, #12, #13, #14. `authenticateApiKey` now
+  throws `AuthError` instead of returning a bespoke result union, so all three v1 routes share the
+  session routes' `errorResponse`/`handleRouteError` envelope. `getData` collapsed to one
+  filter+sort tail; `last_used_at` writes throttled to once per 60s; `pdf-parse` loaded via
+  `await import()` (added `src/types/pdf-parse.d.ts` ambient declaration). Extracted
+  `<DocumentActions>` to dedupe the mobile/desktop toolbars, a shared `src/components/icons.tsx`
+  to dedupe inline SVGs, and `src/lib/sortDocuments.ts` / `src/lib/urlSafety.ts` so those helpers
+  are unit-tested (56 tests across 8 files). `page.tsx` now fetches folders server-side and passes
+  them to `DashboardClient` as `initialFolders`, which only re-fetches after a mutation signal.
+  Added `src/proxy.ts` for Supabase session-cookie refresh — Next.js 16 renamed the
+  `middleware.ts` convention to `proxy.ts`/`export function proxy`, so this repo uses the new name
+  directly rather than the deprecated one.
+  #3 (pagination) deliberately left for a future pass — it requires a `search_documents` SQL
+  migration the user has to run by hand in the Supabase SQL editor, so it wasn't bundled with
+  these zero-migration refactors.

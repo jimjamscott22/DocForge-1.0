@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdminClient";
 import { authenticateApiKey } from "@/lib/apiKeyAuth";
 import { BUCKET_NAME } from "@/lib/storage";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { NotFoundError, ServerError } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,21 +14,18 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const authResult = await authenticateApiKey(request.headers.get("authorization"));
-    if (!authResult.success) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
+    const userId = await authenticateApiKey(request.headers.get("authorization"));
 
     const supabase = createSupabaseAdminClient();
     const { data: doc, error: docError } = await supabase
       .from("documents")
       .select("storage_path, title")
       .eq("id", id)
-      .eq("created_by", authResult.userId)
+      .eq("created_by", userId)
       .single();
 
     if (docError || !doc) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+      return errorResponse(new NotFoundError("Document not found"));
     }
 
     const { data: signedUrlData, error: signedUrlError } = await supabase
@@ -35,12 +34,11 @@ export async function GET(
       .createSignedUrl(doc.storage_path, 3600);
 
     if (signedUrlError || !signedUrlData?.signedUrl) {
-      return NextResponse.json({ error: "Could not generate download link" }, { status: 500 });
+      return errorResponse(new ServerError("Could not generate download link"));
     }
 
     return NextResponse.json({ url: signedUrlData.signedUrl, title: doc.title });
   } catch (err) {
-    console.error("v1 download GET error:", err);
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }

@@ -13,6 +13,7 @@ import {
   formatDate,
   getFileIcon,
 } from "./documentTableTypes";
+import { EmptyBoxIcon, HistoryIcon } from "./icons";
 
 type Props = {
   documents: DocumentRow[];
@@ -30,6 +31,32 @@ function PreviewButton({ doc }: { doc: DocumentRow }) {
   return null;
 }
 
+function DocumentActions({
+  doc,
+  onVersionHistory,
+}: {
+  doc: DocumentRow;
+  onVersionHistory: (doc: DocumentRow) => void;
+}) {
+  return (
+    <>
+      <PreviewButton doc={doc} />
+      <ExportButton documentId={doc.id} storagePath={doc.storage_path} documentTitle={doc.title} />
+      <ViewDocumentButton documentId={doc.id} />
+      <button
+        type="button"
+        onClick={() => onVersionHistory(doc)}
+        className="focus-ring inline-flex items-center gap-1 rounded-md border border-stone-700/50 bg-stone-800 px-2.5 py-1.5 text-xs font-medium text-stone-400 transition hover:text-stone-200"
+        title="Version history"
+      >
+        <HistoryIcon className="h-3.5 w-3.5" />
+        History
+      </button>
+      <DeleteDocumentButton documentId={doc.id} documentTitle={doc.title} />
+    </>
+  );
+}
+
 export default function DocumentTableCore({
   documents,
   selectedIds,
@@ -42,19 +69,7 @@ export default function DocumentTableCore({
     return (
       <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-stone-700/50 bg-stone-900/40 px-6 py-12 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-stone-800">
-          <svg
-            className="h-6 w-6 text-stone-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12H9.75m0 0l2.25-2.25M9.75 15l2.25 2.25M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+          <EmptyBoxIcon className="h-6 w-6 text-stone-500" />
         </div>
         <p className="text-sm text-stone-400">
           Your vault is empty. Upload your first document to get started.
@@ -112,21 +127,7 @@ export default function DocumentTableCore({
                   </span>
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <PreviewButton doc={doc} />
-                  <ExportButton documentId={doc.id} storagePath={doc.storage_path} documentTitle={doc.title} />
-                  <ViewDocumentButton documentId={doc.id} />
-                  <button
-                    type="button"
-                    onClick={() => onVersionHistory(doc)}
-                    className="focus-ring inline-flex items-center gap-1 rounded-md border border-stone-700/50 bg-stone-800 px-2.5 py-1.5 text-xs font-medium text-stone-400 transition hover:text-stone-200"
-                    title="Version history"
-                  >
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    History
-                  </button>
-                  <DeleteDocumentButton documentId={doc.id} documentTitle={doc.title} />
+                  <DocumentActions doc={doc} onVersionHistory={onVersionHistory} />
                 </div>
               </div>
             </div>
@@ -192,21 +193,7 @@ export default function DocumentTableCore({
                 </td>
                 <td className="px-4 py-3.5 text-right">
                   <div className="flex items-center justify-end gap-2">
-                    <PreviewButton doc={doc} />
-                    <ExportButton documentId={doc.id} storagePath={doc.storage_path} documentTitle={doc.title} />
-                    <ViewDocumentButton documentId={doc.id} />
-                    <button
-                      type="button"
-                      onClick={() => onVersionHistory(doc)}
-                      className="focus-ring inline-flex items-center gap-1 rounded-md border border-stone-700/50 bg-stone-800 px-2.5 py-1.5 text-xs font-medium text-stone-400 transition hover:text-stone-200"
-                      title="Version history"
-                    >
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      History
-                    </button>
-                    <DeleteDocumentButton documentId={doc.id} documentTitle={doc.title} />
+                    <DocumentActions doc={doc} onVersionHistory={onVersionHistory} />
                   </div>
                 </td>
               </tr>

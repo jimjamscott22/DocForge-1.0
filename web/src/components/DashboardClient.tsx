@@ -10,6 +10,7 @@ import ApiKeyManager from "./ApiKeyManager";
 import { useToast } from "./ToastProvider";
 import { useRouter } from "next/navigation";
 import { DocumentRow } from "./documentTableTypes";
+import { ChartBarIcon, ChevronDownIcon, DocumentIcon, KeyIcon } from "./icons";
 
 type FolderOption = {
   id: string;
@@ -19,12 +20,14 @@ type FolderOption = {
 
 type DashboardClientProps = {
   documents: DocumentRow[];
+  initialFolders?: FolderOption[];
   workspaceControls?: ReactNode;
   uploadSlot?: ReactNode;
 };
 
 export default function DashboardClient({
   documents,
+  initialFolders = [],
   workspaceControls,
   uploadSlot,
 }: DashboardClientProps) {
@@ -45,10 +48,11 @@ export default function DashboardClient({
   // Move document modal state
   const [moveModalOpen, setMoveModalOpen] = useState(false);
   const [movingDocIds, setMovingDocIds] = useState<string[]>([]);
-  const [folders, setFolders] = useState<FolderOption[]>([]);
+  const [folders, setFolders] = useState<FolderOption[]>(initialFolders);
 
-  // Load folder list for move modal; re-runs when folderRefreshSignal changes
+  // Server already provided the initial folder list; only refetch after a mutation.
   useEffect(() => {
+    if (folderRefreshSignal === 0) return;
     let cancelled = false;
     fetch("/api/folders")
       .then((r) => r.json())
@@ -160,15 +164,7 @@ export default function DashboardClient({
             className="mb-3 flex w-full items-center justify-between text-xs font-semibold uppercase tracking-widest text-stone-500 transition hover:text-stone-300"
           >
             <span>Folders</span>
-            <svg
-              className={`h-3.5 w-3.5 transition-transform ${showFolderTree ? "rotate-180" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
+            <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${showFolderTree ? "rotate-180" : ""}`} />
           </button>
           {showFolderTree && (
             <FolderTree
@@ -191,20 +187,10 @@ export default function DashboardClient({
             className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-widest text-stone-500 transition hover:text-stone-300"
           >
             <span className="flex items-center gap-2">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+              <ChartBarIcon className="h-3.5 w-3.5" />
               Analytics
             </span>
-            <svg
-              className={`h-3.5 w-3.5 transition-transform ${showAnalytics ? "rotate-180" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
+            <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${showAnalytics ? "rotate-180" : ""}`} />
           </button>
           {showAnalytics && (
             <div className="mt-4">
@@ -220,20 +206,10 @@ export default function DashboardClient({
             className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-widest text-stone-500 transition hover:text-stone-300"
           >
             <span className="flex items-center gap-2">
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
+              <KeyIcon className="h-3.5 w-3.5" />
               API Keys
             </span>
-            <svg
-              className={`h-3.5 w-3.5 transition-transform ${showApiKeys ? "rotate-180" : ""}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
+            <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${showApiKeys ? "rotate-180" : ""}`} />
           </button>
           {showApiKeys && (
             <div className="mt-4">
@@ -251,9 +227,7 @@ export default function DashboardClient({
               <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                 <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-forge-500/15 ring-1 ring-forge-500/20">
-                  <svg className="h-5 w-5 text-forge-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
+                  <DocumentIcon className="h-5 w-5 text-forge-400" />
                 </div>
                 <div>
                   <div className="flex flex-wrap items-center gap-2">

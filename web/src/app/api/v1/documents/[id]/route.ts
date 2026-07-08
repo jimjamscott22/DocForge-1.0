@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabaseAdminClient";
 import { authenticateApiKey } from "@/lib/apiKeyAuth";
+import { errorResponse, handleRouteError } from "@/lib/apiResponse";
+import { NotFoundError } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,26 +13,22 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const authResult = await authenticateApiKey(request.headers.get("authorization"));
-    if (!authResult.success) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
-    }
+    const userId = await authenticateApiKey(request.headers.get("authorization"));
 
     const supabase = createSupabaseAdminClient();
     const { data: doc, error } = await supabase
       .from("documents")
       .select("id,title,storage_path,file_size_bytes,created_at,updated_at,folder_id")
       .eq("id", id)
-      .eq("created_by", authResult.userId)
+      .eq("created_by", userId)
       .single();
 
     if (error || !doc) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+      return errorResponse(new NotFoundError("Document not found"));
     }
 
     return NextResponse.json({ document: doc });
   } catch (err) {
-    console.error("v1 document GET error:", err);
-    return NextResponse.json({ error: "An unexpected error occurred" }, { status: 500 });
+    return handleRouteError(err, "An unexpected error occurred");
   }
 }
