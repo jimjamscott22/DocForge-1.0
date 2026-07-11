@@ -130,8 +130,8 @@ export default async function Home({ searchParams }: PageProps) {
           ))}
         </div>
       </div>
-      <form className="grid gap-3 xl:grid-cols-[minmax(14rem,1.4fr)_auto_auto_auto_auto]" method="get">
-        <div className="relative">
+      <form className="grid gap-3 xl:grid-cols-[minmax(14rem,1fr)_minmax(8rem,auto)_minmax(8rem,auto)_minmax(8rem,auto)_auto]" method="get">
+        <div className="relative min-w-0">
           <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
           <input
             type="text"
@@ -179,7 +179,7 @@ export default async function Home({ searchParams }: PageProps) {
         </select>
         <button
           type="submit"
-          className="focus-ring rounded-lg bg-forge-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-forge-500"
+          className="focus-ring rounded-lg bg-forge-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-forge-500 min-w-0 justify-self-end"
         >
           Search
         </button>
