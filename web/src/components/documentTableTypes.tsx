@@ -19,6 +19,7 @@ export const FileTypeIcon = ({ type, extension }: { type: string; extension?: st
     pdf: "text-red-400 bg-red-400/10",
     img: "text-violet-400 bg-violet-400/10",
     txt: "text-emerald-400 bg-emerald-400/10",
+    md: "text-blue-400 bg-blue-400/10",
     doc: "text-blue-400 bg-blue-400/10",
     file: "text-stone-400 bg-stone-400/10",
   };
@@ -32,10 +33,11 @@ export const FileTypeIcon = ({ type, extension }: { type: string; extension?: st
   };
 
   const label = extension ? extension.toUpperCase() : labels[type];
+  const color = extension?.toLowerCase() === "md" ? colors.md : colors[type];
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-wider ${colors[type]}`}
+      className={`inline-flex items-center justify-center rounded px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-wider ${color}`}
     >
       {label}
     </span>
