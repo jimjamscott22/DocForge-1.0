@@ -136,70 +136,83 @@ export default function DocumentTableCore({
       </div>
 
       {/* Desktop table */}
-      <div className="hidden overflow-hidden rounded-lg border border-stone-700/40 md:block">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b border-stone-700/40 bg-stone-900/60">
-              <th className="w-10 px-3 py-3">
+      <div
+        role="table"
+        aria-label="Documents"
+        className="hidden grid-cols-[2.5rem_minmax(0,1fr)_auto_auto_auto_auto] gap-y-2 text-sm md:grid"
+      >
+        <div role="rowgroup" className="contents">
+          <div
+            role="row"
+            className="col-span-full grid grid-cols-subgrid items-center rounded-lg border border-stone-700/40 bg-stone-900/60"
+          >
+            <div role="columnheader" className="px-3 py-3">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={onToggleSelectAll}
+                className="h-3.5 w-3.5 cursor-pointer rounded border-stone-600 accent-forge-500"
+                aria-label="Select all documents"
+              />
+            </div>
+            <div role="columnheader" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-stone-500">
+              Title
+            </div>
+            <div role="columnheader" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-stone-500">
+              Type
+            </div>
+            <div role="columnheader" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-stone-500">
+              Size
+            </div>
+            <div role="columnheader" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-stone-500">
+              Added
+            </div>
+            <div role="columnheader" className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-widest text-stone-500" />
+          </div>
+        </div>
+
+        <div role="rowgroup" className="contents">
+          {documents.map((doc) => (
+            <div
+              key={doc.id}
+              role="row"
+              draggable
+              onDragStart={(e) => e.dataTransfer.setData("text/plain", doc.id)}
+              className={`row-glow col-span-full grid grid-cols-subgrid items-center rounded-lg border border-l-4 border-stone-700/40 ${
+                selectedIds.has(doc.id)
+                  ? "border-l-forge-500/80 bg-forge-500/[0.06]"
+                  : "border-l-transparent bg-stone-900/40"
+              }`}
+            >
+              <div role="cell" className="px-3 py-3.5">
                 <input
                   type="checkbox"
-                  checked={allSelected}
-                  onChange={onToggleSelectAll}
+                  checked={selectedIds.has(doc.id)}
+                  onChange={() => onToggleSelect(doc.id)}
                   className="h-3.5 w-3.5 cursor-pointer rounded border-stone-600 accent-forge-500"
-                  aria-label="Select all documents"
+                  aria-label={`Select ${doc.title}`}
                 />
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-stone-500">
-                Title
-              </th>
-              <th className="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-stone-500 sm:table-cell">
-                Type
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-stone-500">
-                Size
-              </th>
-              <th className="hidden px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-stone-500 md:table-cell">
-                Added
-              </th>
-              <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-widest text-stone-500"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-stone-700/30">
-            {documents.map((doc) => (
-              <tr
-                key={doc.id}
-                draggable
-                onDragStart={(e) => e.dataTransfer.setData("text/plain", doc.id)}
-                className={`table-row-hover ${selectedIds.has(doc.id) ? "bg-forge-500/[0.06]" : ""}`}
-              >
-                <td className="w-10 px-3 py-3.5">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(doc.id)}
-                    onChange={() => onToggleSelect(doc.id)}
-                    className="h-3.5 w-3.5 cursor-pointer rounded border-stone-600 accent-forge-500"
-                    aria-label={`Select ${doc.title}`}
-                  />
-                </td>
-                <td className="px-4 py-3.5 font-medium text-stone-100">{doc.title}</td>
-                <td className="hidden px-4 py-3.5 sm:table-cell">
-                  <FileTypeIcon type={getFileIcon(doc.storage_path)} extension={getFileExtension(doc.storage_path)} />
-                </td>
-                <td className="px-4 py-3.5 font-mono text-xs text-stone-400">
-                  {formatBytes(doc.file_size_bytes)}
-                </td>
-                <td className="hidden px-4 py-3.5 text-stone-400 md:table-cell">
-                  {formatDate(doc.created_at)}
-                </td>
-                <td className="px-4 py-3.5 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <DocumentActions doc={doc} onVersionHistory={onVersionHistory} />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              </div>
+              <div role="cell" className="px-4 py-3.5 font-semibold text-stone-100">
+                {doc.title}
+              </div>
+              <div role="cell" className="px-4 py-3.5">
+                <FileTypeIcon type={getFileIcon(doc.storage_path)} extension={getFileExtension(doc.storage_path)} />
+              </div>
+              <div role="cell" className="px-4 py-3.5 font-mono text-xs text-stone-400">
+                {formatBytes(doc.file_size_bytes)}
+              </div>
+              <div role="cell" className="px-4 py-3.5 text-stone-400">
+                {formatDate(doc.created_at)}
+              </div>
+              <div role="cell" className="px-4 py-3.5 text-right">
+                <div className="flex items-center justify-end gap-2">
+                  <DocumentActions doc={doc} onVersionHistory={onVersionHistory} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </>
   );
