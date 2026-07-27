@@ -24,6 +24,9 @@ type Props = {
   onVersionHistory: (doc: DocumentRow) => void;
 };
 
+const HEADER_CELL_CLASS =
+  "px-4 py-3 text-[11px] font-semibold uppercase tracking-widest text-stone-500";
+
 function PreviewButton({ doc }: { doc: DocumentRow }) {
   const ext = getFileExtension(doc.storage_path);
   if (ext === "pdf") return <PdfPreviewModal documentId={doc.id} documentTitle={doc.title} />;
@@ -139,12 +142,12 @@ export default function DocumentTableCore({
       <div
         role="table"
         aria-label="Documents"
-        className="hidden grid-cols-[2.5rem_minmax(0,1fr)_auto_auto_auto_auto] gap-y-2 text-sm md:grid"
+        className="hidden grid-cols-[2.5rem_minmax(8rem,1fr)_auto_auto_auto_auto] gap-y-2 overflow-x-auto text-sm md:grid"
       >
         <div role="rowgroup" className="contents">
           <div
             role="row"
-            className="col-span-full grid grid-cols-subgrid items-center rounded-lg border border-stone-700/40 bg-stone-900/60"
+            className="col-span-full grid grid-cols-subgrid items-center rounded-lg border border-l-4 border-l-transparent border-stone-700/40 bg-stone-900/60"
           >
             <div role="columnheader" className="px-3 py-3">
               <input
@@ -155,19 +158,19 @@ export default function DocumentTableCore({
                 aria-label="Select all documents"
               />
             </div>
-            <div role="columnheader" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-stone-500">
+            <div role="columnheader" className={`${HEADER_CELL_CLASS} text-left`}>
               Title
             </div>
-            <div role="columnheader" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-stone-500">
+            <div role="columnheader" className={`${HEADER_CELL_CLASS} text-left`}>
               Type
             </div>
-            <div role="columnheader" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-stone-500">
+            <div role="columnheader" className={`${HEADER_CELL_CLASS} text-left`}>
               Size
             </div>
-            <div role="columnheader" className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-stone-500">
+            <div role="columnheader" className={`${HEADER_CELL_CLASS} text-left`}>
               Added
             </div>
-            <div role="columnheader" className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-widest text-stone-500" />
+            <div role="columnheader" className={`${HEADER_CELL_CLASS} text-right`} aria-label="Actions" />
           </div>
         </div>
 
@@ -193,7 +196,7 @@ export default function DocumentTableCore({
                   aria-label={`Select ${doc.title}`}
                 />
               </div>
-              <div role="cell" className="px-4 py-3.5 font-semibold text-stone-100">
+              <div role="cell" className="min-w-0 truncate px-4 py-3.5 font-semibold text-stone-100">
                 {doc.title}
               </div>
               <div role="cell" className="px-4 py-3.5">
