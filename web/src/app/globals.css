@@ -284,6 +284,25 @@ body::before {
   background-color: rgba(249, 115, 22, 0.04);
 }
 
+/* Elevation glow for document rows */
+.row-glow {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.row-glow:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px -6px rgba(var(--accent-rgb), 0.3), 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row-glow {
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .row-glow:hover {
+    transform: none;
+  }
+}
+
 /* Focus ring style */
 .focus-ring:focus-visible {
   outline: 2px solid rgba(249, 115, 22, 0.5);
