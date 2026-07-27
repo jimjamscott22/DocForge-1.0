@@ -142,7 +142,7 @@ export default function DocumentTableCore({
       <div
         role="table"
         aria-label="Documents"
-        className="hidden grid-cols-[2.5rem_minmax(8rem,1fr)_auto_auto_auto_13rem] gap-y-2 overflow-x-auto text-sm md:grid"
+        className="hidden grid-cols-[2.5rem_minmax(8rem,1fr)_auto_auto_auto_18.5rem] gap-y-2 overflow-x-auto text-sm md:grid"
       >
         <div role="rowgroup" className="contents">
           <div
