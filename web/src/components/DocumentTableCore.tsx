@@ -142,7 +142,7 @@ export default function DocumentTableCore({
       <div
         role="table"
         aria-label="Documents"
-        className="hidden grid-cols-[2.5rem_minmax(8rem,1fr)_auto_auto_auto_auto] gap-y-2 overflow-x-auto text-sm md:grid"
+        className="hidden grid-cols-[2.5rem_minmax(8rem,1fr)_auto_auto_auto_13rem] gap-y-2 overflow-x-auto text-sm md:grid"
       >
         <div role="rowgroup" className="contents">
           <div
@@ -209,7 +209,7 @@ export default function DocumentTableCore({
                 {formatDate(doc.created_at)}
               </div>
               <div role="cell" className="px-4 py-3.5 text-right">
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-2">
                   <DocumentActions doc={doc} onVersionHistory={onVersionHistory} />
                 </div>
               </div>
