@@ -45,3 +45,6 @@ nul
 *.tmp
 *.temp
 .cache/
+
+# GitHub Actions Workflow artifacts
+.github/*
