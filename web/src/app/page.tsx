@@ -1,6 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import AuthButtons from "@/components/AuthButtons";
-import UploadSection from "@/components/UploadSection";
 import DashboardClient from "@/components/DashboardClient";
 import ReferenceLinksSidebar from "@/components/ReferenceLinksSidebar";
 import { getFileTypeFromPath, type FileFilterOption } from "@/lib/fileType";
@@ -29,8 +28,6 @@ type PageProps = {
 };
 
 type EnvironmentOption = "production" | "staging" | "development";
-
-const formatDocumentCount = (count: number) => `${count} document${count === 1 ? "" : "s"}`;
 
 async function getData(search: string, sort: SortOption, fileType: FileFilterOption) {
   const supabase = await createSupabaseServerClient();
@@ -109,26 +106,16 @@ export default async function Home({ searchParams }: PageProps) {
     totalStorageMb,
   ];
   const workspaceControls = (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-forge-400">
-            Library controls
-          </p>
-          <p className="mt-1 text-sm text-stone-400">
-            Search, filter, and sort {formatDocumentCount(documents.length)}.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {statusChips.map((chip) => (
-            <span
-              key={chip}
-              className="rounded-full border border-stone-700/60 bg-stone-950/50 px-3 py-1.5 text-xs font-medium text-stone-300"
-            >
-              {chip}
-            </span>
-          ))}
-        </div>
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap gap-2">
+        {statusChips.map((chip) => (
+          <span
+            key={chip}
+            className="rounded-full border border-stone-700/60 bg-stone-950/50 px-3 py-1.5 text-xs font-medium text-stone-300"
+          >
+            {chip}
+          </span>
+        ))}
       </div>
       <form className="grid gap-3 xl:grid-cols-[minmax(14rem,1fr)_minmax(8rem,auto)_minmax(8rem,auto)_minmax(8rem,auto)_auto]" method="get">
         <div className="relative min-w-0">
@@ -308,7 +295,6 @@ export default async function Home({ searchParams }: PageProps) {
               documents={documents}
               initialFolders={folders}
               workspaceControls={workspaceControls}
-              uploadSlot={<UploadSection />}
             />
 
             {/* Reference Links Section */}

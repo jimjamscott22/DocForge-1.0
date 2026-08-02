@@ -7,6 +7,7 @@ import CreateFolderModal from "./CreateFolderModal";
 import MoveDocumentModal from "./MoveDocumentModal";
 import AnalyticsDashboard from "./AnalyticsDashboard";
 import ApiKeyManager from "./ApiKeyManager";
+import UploadDrawer from "./UploadDrawer";
 import { useToast } from "./ToastProvider";
 import { useRouter } from "next/navigation";
 import { DocumentRow } from "./documentTableTypes";
@@ -18,39 +19,35 @@ type FolderOption = {
   parent_id: string | null;
 };
 
+type WorkspacePanel = "analytics" | "apiKeys" | null;
+
 type DashboardClientProps = {
   documents: DocumentRow[];
   initialFolders?: FolderOption[];
   workspaceControls?: ReactNode;
-  uploadSlot?: ReactNode;
 };
 
 export default function DashboardClient({
   documents,
   initialFolders = [],
   workspaceControls,
-  uploadSlot,
 }: DashboardClientProps) {
   const router = useRouter();
   const { showSuccess, showError } = useToast();
 
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [showAnalytics, setShowAnalytics] = useState(false);
-  const [showApiKeys, setShowApiKeys] = useState(false);
-  const [showFolderTree, setShowFolderTree] = useState(true);
+  const [workspacePanel, setWorkspacePanel] = useState<WorkspacePanel>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
-  // Folder modal state
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [folderModalParentId, setFolderModalParentId] = useState<string | null>(null);
   const [editingFolder, setEditingFolder] = useState<{ id: string; name: string } | null>(null);
   const [folderRefreshSignal, setFolderRefreshSignal] = useState(0);
 
-  // Move document modal state
   const [moveModalOpen, setMoveModalOpen] = useState(false);
   const [movingDocIds, setMovingDocIds] = useState<string[]>([]);
   const [folders, setFolders] = useState<FolderOption[]>(initialFolders);
 
-  // Server already provided the initial folder list; only refetch after a mutation.
   useEffect(() => {
     if (folderRefreshSignal === 0) return;
     let cancelled = false;
@@ -60,7 +57,9 @@ export default function DashboardClient({
         if (!cancelled) setFolders(data.folders ?? []);
       })
       .catch(() => {});
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [folderRefreshSignal]);
 
   const handleFolderRefresh = useCallback(() => {
@@ -122,154 +121,196 @@ export default function DashboardClient({
     setMoveModalOpen(true);
   };
 
-  // Build folder map for drag-drop highlighting in tree
+  const toggleWorkspace = (panel: Exclude<WorkspacePanel, null>) => {
+    setWorkspacePanel((current) => (current === panel ? null : panel));
+  };
+
   const documentFolderMap: Record<string, string | null> = {};
   for (const doc of documents) {
     documentFolderMap[doc.id] = doc.folder_id ?? null;
   }
 
-  // Filter documents by selected folder
-  const filteredDocuments = selectedFolderId === null
-    ? documents
-    : documents.filter((d) => d.folder_id === selectedFolderId);
+  const filteredDocuments =
+    selectedFolderId === null
+      ? documents
+      : documents.filter((d) => d.folder_id === selectedFolderId);
 
   const selectedFolderName = folders.find((f) => f.id === selectedFolderId)?.name ?? null;
   const rootDocumentCount = documents.filter((document) => !document.folder_id).length;
   const folderCount = folders.length;
+  const totalStorageBytes = documents.reduce(
+    (total, document) => total + (document.file_size_bytes ?? 0),
+    0
+  );
+  const totalStorageLabel =
+    totalStorageBytes > 0
+      ? `${(totalStorageBytes / (1024 * 1024)).toFixed(1)} MB`
+      : "0 MB";
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-      {/* Left sidebar */}
-      <section className="animate-fade-up order-2 lg:order-1 lg:sticky lg:top-6 lg:self-start" style={{ animationDelay: "0.15s" }}>
-        {uploadSlot && (
-          <div className="mb-4">
-            {uploadSlot}
-          </div>
-        )}
-
-        <div className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-stone-700/40 bg-stone-700/40">
-          <div className="bg-stone-950/35 p-3 backdrop-blur-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">Folders</p>
-            <p className="mt-1 font-display text-xl text-stone-50">{folderCount}</p>
-          </div>
-          <div className="bg-stone-950/35 p-3 backdrop-blur-sm">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-stone-500">Root Files</p>
-            <p className="mt-1 font-display text-xl text-stone-50">{rootDocumentCount}</p>
-          </div>
-        </div>
-        {/* Folder tree */}
-        <div className="rounded-lg border border-stone-700/40 bg-stone-950/30 p-4 backdrop-blur-sm">
-          <button
-            onClick={() => setShowFolderTree((v) => !v)}
-            className="mb-3 flex w-full items-center justify-between text-xs font-semibold uppercase tracking-widest text-stone-500 transition hover:text-stone-300"
-          >
-            <span>Folders</span>
-            <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${showFolderTree ? "rotate-180" : ""}`} />
-          </button>
-          {showFolderTree && (
-            <FolderTree
-              selectedFolderId={selectedFolderId}
-              onSelectFolder={setSelectedFolderId}
-              onCreateFolder={handleCreateFolder}
-              onRenameFolder={handleRenameFolder}
-              onDeleteFolder={handleDeleteFolder}
-              onDropDocument={handleDropDocument}
-              documentFolderMap={documentFolderMap}
-              refreshSignal={folderRefreshSignal}
-            />
-          )}
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[14rem_minmax(0,1fr)] lg:items-start">
+      {/* Thin folder rail */}
+      <section
+        className="animate-fade-up order-2 lg:order-1 lg:sticky lg:top-6 lg:self-start"
+        style={{ animationDelay: "0.15s" }}
+      >
+        <div className="rounded-lg border border-stone-700/40 bg-stone-950/30 p-3 backdrop-blur-sm">
+          <FolderTree
+            selectedFolderId={selectedFolderId}
+            onSelectFolder={setSelectedFolderId}
+            onCreateFolder={handleCreateFolder}
+            onRenameFolder={handleRenameFolder}
+            onDeleteFolder={handleDeleteFolder}
+            onDropDocument={handleDropDocument}
+            documentFolderMap={documentFolderMap}
+            refreshSignal={folderRefreshSignal}
+          />
         </div>
 
-        {/* Analytics toggle */}
-        <div className="mt-4 rounded-lg border border-stone-700/40 bg-stone-950/25 p-4 backdrop-blur-sm">
+        <div className="mt-3 rounded-lg border border-stone-700/40 bg-stone-950/25 p-2 backdrop-blur-sm">
+          <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-600">
+            Workspace
+          </p>
           <button
-            onClick={() => setShowAnalytics((v) => !v)}
-            className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-widest text-stone-500 transition hover:text-stone-300"
+            type="button"
+            onClick={() => toggleWorkspace("analytics")}
+            className={`flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-xs font-medium transition ${
+              workspacePanel === "analytics"
+                ? "bg-stone-800/80 text-stone-100"
+                : "text-stone-400 hover:bg-stone-800/50 hover:text-stone-200"
+            }`}
           >
             <span className="flex items-center gap-2">
               <ChartBarIcon className="h-3.5 w-3.5" />
               Analytics
             </span>
-            <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${showAnalytics ? "rotate-180" : ""}`} />
+            <ChevronDownIcon
+              className={`h-3.5 w-3.5 transition-transform ${
+                workspacePanel === "analytics" ? "rotate-180" : ""
+              }`}
+            />
           </button>
-          {showAnalytics && (
-            <div className="mt-4">
-              <AnalyticsDashboard />
-            </div>
-          )}
-        </div>
-
-        {/* API Keys toggle */}
-        <div className="mt-4 rounded-lg border border-stone-700/40 bg-stone-950/25 p-4 backdrop-blur-sm">
           <button
-            onClick={() => setShowApiKeys((v) => !v)}
-            className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-widest text-stone-500 transition hover:text-stone-300"
+            type="button"
+            onClick={() => toggleWorkspace("apiKeys")}
+            className={`mt-0.5 flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-xs font-medium transition ${
+              workspacePanel === "apiKeys"
+                ? "bg-stone-800/80 text-stone-100"
+                : "text-stone-400 hover:bg-stone-800/50 hover:text-stone-200"
+            }`}
           >
             <span className="flex items-center gap-2">
               <KeyIcon className="h-3.5 w-3.5" />
               API Keys
             </span>
-            <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${showApiKeys ? "rotate-180" : ""}`} />
-          </button>
-          {showApiKeys && (
-            <div className="mt-4">
-              <ApiKeyManager />
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Documents section */}
-      <section className="animate-fade-up order-1 lg:order-2" style={{ animationDelay: "0.2s" }}>
-        <div className="card-glow overflow-hidden rounded-xl border border-stone-700/50 bg-stone-850/60 backdrop-blur-sm">
-          <div className="border-b border-stone-700/40 bg-[linear-gradient(135deg,rgba(249,115,22,0.1),transparent_40%),linear-gradient(180deg,rgba(12,10,9,0.25),rgba(12,10,9,0))] px-6 py-5">
-            <div className="flex flex-col gap-5">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-forge-500/15 ring-1 ring-forge-500/20">
-                  <DocumentIcon className="h-5 w-5 text-forge-400" />
-                </div>
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-display text-xl text-stone-50">Documents</h2>
-                    {selectedFolderName && (
-                      <span className="rounded-full border border-forge-500/30 bg-forge-500/10 px-2.5 py-1 text-xs font-semibold text-forge-300">
-                        {selectedFolderName}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-stone-400">
-                    {filteredDocuments.length} file{filteredDocuments.length !== 1 ? "s" : ""}
-                    {selectedFolderName ? ` currently visible in ${selectedFolderName}` : " currently visible across your vault"}
-                  </p>
-                </div>
-              </div>
-                <div className="flex flex-wrap gap-2 text-xs text-stone-400">
-                  <span className="rounded-full border border-stone-700/60 bg-stone-950/40 px-3 py-1.5">
-                  Drag rows into folders
-                  </span>
-                  <span className="rounded-full border border-stone-700/60 bg-stone-950/40 px-3 py-1.5">
-                  Bulk actions after selection
-                  </span>
-                </div>
-              </div>
-              {workspaceControls && (
-                <div className="rounded-lg border border-stone-700/40 bg-stone-950/35 p-3">
-                  {workspaceControls}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="p-6">
-            <DocumentTable
-              documents={filteredDocuments}
-              onMoveToFolder={handleMoveToFolder}
+            <ChevronDownIcon
+              className={`h-3.5 w-3.5 transition-transform ${
+                workspacePanel === "apiKeys" ? "rotate-180" : ""
+              }`}
             />
+          </button>
+        </div>
+      </section>
+
+      {/* Main browse area */}
+      <section className="animate-fade-up order-1 space-y-4 lg:order-2" style={{ animationDelay: "0.2s" }}>
+        {/* Command strip */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <nav
+            className="flex flex-wrap items-center gap-1.5 text-sm text-stone-400"
+            aria-label="Breadcrumb"
+          >
+            <button
+              type="button"
+              onClick={() => setSelectedFolderId(null)}
+              className={`focus-ring rounded-md px-1.5 py-0.5 transition hover:text-stone-200 ${
+                selectedFolderId === null ? "font-medium text-stone-100" : ""
+              }`}
+            >
+              All Documents
+            </button>
+            {selectedFolderName && (
+              <>
+                <span className="text-stone-600" aria-hidden>
+                  /
+                </span>
+                <span className="rounded-md px-1.5 py-0.5 font-medium text-forge-300">
+                  {selectedFolderName}
+                </span>
+              </>
+            )}
+          </nav>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs text-stone-500">
+              {folderCount} folder{folderCount !== 1 ? "s" : ""} · {rootDocumentCount} root ·{" "}
+              {totalStorageLabel}
+            </p>
+            <button
+              type="button"
+              onClick={() => setUploadOpen(true)}
+              className="focus-ring inline-flex items-center gap-2 rounded-lg bg-forge-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-forge-500"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Upload
+            </button>
+          </div>
+        </div>
+
+        {workspacePanel && (
+          <div className="card-glow rounded-xl border border-stone-700/50 bg-stone-850/60 p-5 backdrop-blur-sm">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="font-display text-lg text-stone-50">
+                {workspacePanel === "analytics" ? "Analytics" : "API Keys"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setWorkspacePanel(null)}
+                className="focus-ring rounded-md px-2 py-1 text-xs font-medium text-stone-400 transition hover:text-stone-200"
+              >
+                Close
+              </button>
+            </div>
+            {workspacePanel === "analytics" ? <AnalyticsDashboard /> : <ApiKeyManager />}
+          </div>
+        )}
+
+        <div className="card-glow overflow-hidden rounded-xl border border-stone-700/50 bg-stone-850/60 backdrop-blur-sm">
+          <div className="border-b border-stone-700/40 px-5 py-4 sm:px-6">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-forge-500/15 ring-1 ring-forge-500/20">
+                    <DocumentIcon className="h-4 w-4 text-forge-400" />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-xl text-stone-50">Library</h2>
+                    <p className="text-sm text-stone-400">
+                      {filteredDocuments.length} file
+                      {filteredDocuments.length !== 1 ? "s" : ""}
+                      {selectedFolderName
+                        ? ` in ${selectedFolderName}`
+                        : " across your vault"}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-stone-500 sm:max-w-xs sm:text-right">
+                  Drag rows into folders. Select rows for bulk actions.
+                </p>
+              </div>
+              {workspaceControls}
+            </div>
+          </div>
+          <div className="p-5 sm:p-6">
+            <DocumentTable documents={filteredDocuments} onMoveToFolder={handleMoveToFolder} />
           </div>
         </div>
       </section>
 
-      {/* Modals */}
+      <UploadDrawer isOpen={uploadOpen} onClose={() => setUploadOpen(false)} />
+
       <CreateFolderModal
         isOpen={folderModalOpen}
         onClose={() => setFolderModalOpen(false)}
