@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, type ReactNode } from "react";
-import DocumentTable from "./DocumentTable";
+import DocumentListPane from "./DocumentListPane";
 import FolderTree, { FolderNode } from "./FolderTree";
 import CreateFolderModal from "./CreateFolderModal";
 import MoveDocumentModal from "./MoveDocumentModal";
@@ -11,7 +11,7 @@ import UploadDrawer from "./UploadDrawer";
 import { useToast } from "./ToastProvider";
 import { useRouter } from "next/navigation";
 import { DocumentRow } from "./documentTableTypes";
-import { ChartBarIcon, ChevronDownIcon, DocumentIcon, KeyIcon } from "./icons";
+import { ChartBarIcon, ChevronDownIcon, KeyIcon } from "./icons";
 
 type FolderOption = {
   id: string;
@@ -36,6 +36,7 @@ export default function DashboardClient({
   const { showSuccess, showError } = useToast();
 
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [workspacePanel, setWorkspacePanel] = useState<WorkspacePanel>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
@@ -134,6 +135,11 @@ export default function DashboardClient({
     selectedFolderId === null
       ? documents
       : documents.filter((d) => d.folder_id === selectedFolderId);
+
+  const activeDocumentId =
+    selectedDocumentId && filteredDocuments.some((d) => d.id === selectedDocumentId)
+      ? selectedDocumentId
+      : (filteredDocuments[0]?.id ?? null);
 
   const selectedFolderName = folders.find((f) => f.id === selectedFolderId)?.name ?? null;
   const rootDocumentCount = documents.filter((document) => !document.folder_id).length;
@@ -277,35 +283,18 @@ export default function DashboardClient({
           </div>
         )}
 
-        <div className="card-glow overflow-hidden rounded-xl border border-stone-700/50 bg-stone-850/60 backdrop-blur-sm">
-          <div className="border-b border-stone-700/40 px-5 py-4 sm:px-6">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-forge-500/15 ring-1 ring-forge-500/20">
-                    <DocumentIcon className="h-4 w-4 text-forge-400" />
-                  </div>
-                  <div>
-                    <h2 className="font-display text-xl text-stone-50">Library</h2>
-                    <p className="text-sm text-stone-400">
-                      {filteredDocuments.length} file
-                      {filteredDocuments.length !== 1 ? "s" : ""}
-                      {selectedFolderName
-                        ? ` in ${selectedFolderName}`
-                        : " across your vault"}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-xs text-stone-500 sm:max-w-xs sm:text-right">
-                  Drag rows into folders. Select rows for bulk actions.
-                </p>
-              </div>
+        <div className="space-y-4">
+          {workspaceControls && (
+            <div className="rounded-xl border border-stone-700/50 bg-stone-850/60 px-4 py-3 backdrop-blur-sm sm:px-5">
               {workspaceControls}
             </div>
-          </div>
-          <div className="p-5 sm:p-6">
-            <DocumentTable documents={filteredDocuments} onMoveToFolder={handleMoveToFolder} />
-          </div>
+          )}
+          <DocumentListPane
+            documents={filteredDocuments}
+            selectedDocumentId={activeDocumentId}
+            onSelectDocument={setSelectedDocumentId}
+            onMoveToFolder={handleMoveToFolder}
+          />
         </div>
       </section>
 

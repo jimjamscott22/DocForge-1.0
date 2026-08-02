@@ -176,7 +176,7 @@ export default async function Home({ searchParams }: PageProps) {
 
   return (
     <main className="noise-bg relative min-h-screen bg-stone-900 text-stone-200 antialiased">
-      <div className={`glow-top relative z-10 mx-auto flex max-w-6xl flex-col px-6 py-10 sm:px-8 ${isAuthed ? "gap-6" : "gap-10"}`}>
+      <div className={`glow-top relative z-10 mx-auto flex flex-col px-6 py-10 sm:px-8 ${isAuthed ? "max-w-7xl gap-6" : "max-w-6xl gap-10"}`}>
 
         {/* ── Header ── */}
         <header
