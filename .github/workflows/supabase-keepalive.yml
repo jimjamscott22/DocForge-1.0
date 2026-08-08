@@ -21,6 +21,12 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          # A shallow (depth-1) checkout strips the parent link off the boundary
+          # commit. Amending that commit then produces a parentless orphan commit,
+          # which the force-push below would happily publish over real history.
+          # Full history avoids that footgun.
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@v4
