@@ -45,3 +45,6 @@ nul
 *.tmp
 *.temp
 .cache/
+
+# Generated knowledge graph (graphify)
+graphify-out/
