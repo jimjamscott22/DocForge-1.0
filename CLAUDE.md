@@ -26,6 +26,8 @@ SUPABASE_SERVICE_ROLE_KEY=   # Server-side only, never exposed to client
 
 Database: run all migrations from `supabase/schema.sql` in Supabase SQL editor. If database predates the latest search update, also run `supabase/search_folder_context_migration.sql`.
 
+**Existing databases must also run `supabase/rpc_auth_hardening_migration.sql`.** The `SECURITY DEFINER` RPCs (`search_documents`, `upsert_document_with_version`, `restore_document_version`) originally scoped ownership to a caller-supplied uuid argument rather than `auth.uid()`, and carried Postgres' default `EXECUTE TO PUBLIC` — which reaches the `anon` role, so anyone holding the public anon key could call them against another user's uuid. `schema.sql` and the individual migrations now contain the hardened definitions, so a fresh install is safe without it; the standalone migration exists to fix databases deployed before the change. Run it last: the other files use `CREATE OR REPLACE`, so applying any of them afterwards is harmless now, but the ordering rule still holds if you restore an older copy of a file.
+
 ## Architecture
 
 **DocForge** is a document vault — Next.js 16 (App Router) frontend + Supabase (PostgreSQL, Auth, Storage) backend.

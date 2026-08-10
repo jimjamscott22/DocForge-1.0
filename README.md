@@ -92,8 +92,13 @@ For an existing DocForge database, back it up and apply only the migrations that
 3. [`supabase/api_keys_migration.sql`](supabase/api_keys_migration.sql)
 4. [`supabase/versioning_migration.sql`](supabase/versioning_migration.sql)
 5. [`supabase/search_folder_context_migration.sql`](supabase/search_folder_context_migration.sql)
+6. [`supabase/rpc_auth_hardening_migration.sql`](supabase/rpc_auth_hardening_migration.sql)
 
 The search-folder migration expects folder support to exist first. Keep deployed environments synchronized with the migration files in this repository.
+
+Step 6 is required for every existing database, including one already on the latest base schema. The `SECURITY DEFINER` search, upsert, and restore RPCs previously trusted a user id passed in by the caller instead of `auth.uid()`, and kept Postgres' default `EXECUTE TO PUBLIC` grant — which includes the `anon` role. Any holder of the public anon key could call them with another account's uuid and read or modify that account's documents. The migration moves identity to `auth.uid()`, raises `user_mismatch` on a mismatched argument, and restricts `EXECUTE` to `authenticated` and `service_role`. Function signatures are unchanged, so no application code changes are needed.
+
+A fresh `schema.sql` run already includes the hardened definitions and does not need step 6.
 
 ### 4. Configure OAuth
 

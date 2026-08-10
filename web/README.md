@@ -37,6 +37,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 5. If needed for an older database, also run:
 
 - `../supabase/search_folder_context_migration.sql`
+- `../supabase/rpc_auth_hardening_migration.sql` — required for every pre-existing database; it stops the `SECURITY DEFINER` RPCs from trusting a caller-supplied user id and revokes their default public `EXECUTE` grant. Not needed after a fresh `schema.sql` run.
 
 6. Start the app
 
