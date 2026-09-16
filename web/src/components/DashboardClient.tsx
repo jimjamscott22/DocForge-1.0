@@ -25,12 +25,14 @@ type DashboardClientProps = {
   documents: DocumentRow[];
   initialFolders?: FolderOption[];
   workspaceControls?: ReactNode;
+  paginationControls?: ReactNode;
 };
 
 export default function DashboardClient({
   documents,
   initialFolders = [],
   workspaceControls,
+  paginationControls,
 }: DashboardClientProps) {
   const router = useRouter();
   const { showSuccess, showError } = useToast();
@@ -296,6 +298,7 @@ export default function DashboardClient({
             onSelectDocument={setSelectedDocumentId}
             onMoveToFolder={handleMoveToFolder}
           />
+          {paginationControls}
         </div>
       </section>
 

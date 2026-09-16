@@ -20,13 +20,24 @@ Every session route repeats the same ~12-line block: build server client → `ge
 routes use the structured `errorResponse`/`AppError` system. Normalize v1 onto the same envelope.
 - **Files:** `src/app/api/v1/**`, `src/lib/apiKeyAuth.ts`.
 
-### 3. No pagination — all documents fetched + sorted + filtered in memory — ⬜
-`getData` in `page.tsx` fetches every document, then sorts and filters by file type in JS.
-- **Plan:** push `.order()` into the query for sort options; filter file type in SQL via the
-  existing `content_type` column; add `LIMIT`/`OFFSET` pagination.
-- Note: `const { data: documents = [], error }` default never fires (Supabase returns `null`,
-  not `undefined`, on error) — the later `(documents || [])` is what guards it.
-- **Files:** `src/app/page.tsx`.
+### 3. No pagination — all documents fetched + sorted + filtered in memory — ✅
+`getData` in `page.tsx` fetched every document, then sorted and filtered by file type in JS.
+- There was no `content_type` column on `documents` (only on `document_versions`), and the
+  file-type filter was always extension-based (`storage_path` parsing in `fileType.ts`), not
+  MIME-based — so filtering went into SQL via `storage_path ILIKE` matching the same extension
+  groups `classify()` uses, not a `content_type` column.
+- The search branch goes through the `search_documents` RPC, which hard-coded `LIMIT 50` with
+  no sort/filter/offset params. Extended its signature (`p_sort`, `p_file_type`, `p_limit`,
+  `p_offset`, plus a `total_count` window column) — see `supabase/search_pagination_migration.sql`
+  for existing databases and the updated definition in `schema.sql` for fresh installs.
+- **Files:** `src/app/page.tsx`, `src/lib/documentQuery.ts` (new), `src/lib/fileType.ts`
+  (extension groups extracted so JS and SQL classification share one source of truth),
+  `src/components/DashboardClient.tsx` (renders the new `paginationControls`),
+  `supabase/schema.sql`, `supabase/search_pagination_migration.sql` (new).
+- Caveat: per-page/folder document counts and storage totals (the header chips and the folder
+  rail's "N root · M MB" line) are now computed from just the current page's documents, since
+  the full set is no longer fetched — they read as page-scoped rather than vault-wide totals.
+  Left as-is since fixing it needs a separate lightweight aggregate query, out of scope here.
 
 ---
 

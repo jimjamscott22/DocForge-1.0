@@ -26,6 +26,12 @@ SUPABASE_SERVICE_ROLE_KEY=   # Server-side only, never exposed to client
 
 Database: run all migrations from `supabase/schema.sql` in Supabase SQL editor. If database predates the latest search update, also run `supabase/search_folder_context_migration.sql`.
 
+**Existing databases must also run `supabase/search_pagination_migration.sql`.** `search_documents` gained
+`p_sort`/`p_file_type`/`p_limit`/`p_offset` params and a `total_count` column so search results can be
+sorted, filtered, and paginated in SQL instead of fetching everything and doing it in JS. This migration
+drops the old 2-arg `search_documents(text, uuid)` before creating the new 6-arg version, so it's
+order-independent relative to the other migration files below — run it whenever, before or after them.
+
 **Existing databases must also run `supabase/rpc_auth_hardening_migration.sql`.** The `SECURITY DEFINER` RPCs (`search_documents`, `upsert_document_with_version`, `restore_document_version`) originally scoped ownership to a caller-supplied uuid argument rather than `auth.uid()`, and carried Postgres' default `EXECUTE TO PUBLIC` — which reaches the `anon` role, so anyone holding the public anon key could call them against another user's uuid. `schema.sql` and the individual migrations now contain the hardened definitions, so a fresh install is safe without it; the standalone migration exists to fix databases deployed before the change. Run it last: the other files use `CREATE OR REPLACE`, so applying any of them afterwards is harmless now, but the ordering rule still holds if you restore an older copy of a file.
 
 ## Architecture

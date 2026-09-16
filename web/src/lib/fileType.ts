@@ -8,16 +8,27 @@ export const getFileExtension = (path: string): string => {
   return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "";
 };
 
+/** Extensions belonging to each filterable category. Also the source used to
+ * build the matching SQL filter (see documentQuery.ts) — keep in sync. */
+export const FILE_TYPE_EXTENSIONS: Record<Exclude<FileFilterOption, "all" | "other">, string[]> = {
+  pdf: ["pdf"],
+  img: ["png", "jpg", "jpeg", "gif"],
+  txt: ["md", "txt"],
+  doc: ["doc", "docx"],
+};
+
+/** Every extension covered by a known category, i.e. not "other". */
+export const CLASSIFIED_EXTENSIONS: string[] = Object.values(FILE_TYPE_EXTENSIONS).flat();
+
 /**
  * Map an extension to its category. The caller supplies the label used for
  * anything that doesn't match a known group ("other" for filtering UI,
  * "file" for icon rendering).
  */
 const classify = (ext: string, fallback: string): string => {
-  if (ext === "pdf") return "pdf";
-  if (["png", "jpg", "jpeg", "gif"].includes(ext)) return "img";
-  if (["md", "txt"].includes(ext)) return "txt";
-  if (["doc", "docx"].includes(ext)) return "doc";
+  for (const [type, extensions] of Object.entries(FILE_TYPE_EXTENSIONS)) {
+    if (extensions.includes(ext)) return type;
+  }
   return fallback;
 };
 

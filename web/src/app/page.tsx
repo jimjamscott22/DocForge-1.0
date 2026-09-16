@@ -1,10 +1,12 @@
+import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import AuthButtons from "@/components/AuthButtons";
 import DashboardClient from "@/components/DashboardClient";
 import ReferenceLinksSidebar from "@/components/ReferenceLinksSidebar";
-import { getFileTypeFromPath, type FileFilterOption } from "@/lib/fileType";
+import type { FileFilterOption } from "@/lib/fileType";
 import { AnvilIcon, CloudIcon, InfoCircleIcon, SearchIcon, ShieldCheckIcon } from "@/components/icons";
-import { sortDocuments, type SortOption } from "@/lib/sortDocuments";
+import type { SortOption } from "@/lib/sortDocuments";
+import { DOCUMENTS_PAGE_SIZE, applyFileTypeFilter, toOrderArgs } from "@/lib/documentQuery";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +31,7 @@ type PageProps = {
 
 type EnvironmentOption = "production" | "staging" | "development";
 
-async function getData(search: string, sort: SortOption, fileType: FileFilterOption) {
+async function getData(search: string, sort: SortOption, fileType: FileFilterOption, page: number) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -41,7 +43,7 @@ async function getData(search: string, sort: SortOption, fileType: FileFilterOpt
   }
 
   if (!user) {
-    return { user: null, documents: [] as DocumentRow[], folders: [] as FolderRow[] };
+    return { user: null, documents: [] as DocumentRow[], folders: [] as FolderRow[], totalCount: 0 };
   }
 
   const { data: folders, error: foldersError } = await supabase
@@ -54,27 +56,46 @@ async function getData(search: string, sort: SortOption, fileType: FileFilterOpt
     console.error("Failed to load folders", foldersError);
   }
 
-  const { data: documents, error } = search
-    ? await supabase.rpc("search_documents", {
-        search_query: search,
-        user_id: user.id,
-      })
-    : await supabase
+  const offset = (page - 1) * DOCUMENTS_PAGE_SIZE;
+  let documents: DocumentRow[] = [];
+  let totalCount = 0;
+  let error: { message: string } | null = null;
+
+  if (search) {
+    const { data, error: rpcError } = await supabase.rpc("search_documents", {
+      search_query: search,
+      user_id: user.id,
+      p_sort: sort,
+      p_file_type: fileType,
+      p_limit: DOCUMENTS_PAGE_SIZE,
+      p_offset: offset,
+    });
+    error = rpcError;
+    const rows = (data ?? []) as (DocumentRow & { total_count: number })[];
+    documents = rows;
+    totalCount = rows[0]?.total_count ?? 0;
+  } else {
+    const { column, ascending } = toOrderArgs(sort);
+    const query = applyFileTypeFilter(
+      supabase
         .from("documents")
-        .select("id,title,storage_path,file_size_bytes,created_at,folder_id")
-        .eq("created_by", user.id)
-        .order("created_at", { ascending: false });
+        .select("id,title,storage_path,file_size_bytes,created_at,folder_id", { count: "exact" })
+        .eq("created_by", user.id),
+      fileType
+    );
+    const { data, error: queryError, count } = await query
+      .order(column, { ascending })
+      .range(offset, offset + DOCUMENTS_PAGE_SIZE - 1);
+    error = queryError;
+    documents = data ?? [];
+    totalCount = count ?? 0;
+  }
 
   if (error) {
     console.error(search ? "Failed to search documents" : "Failed to load documents", error);
   }
 
-  const filtered: DocumentRow[] = (documents || []).filter((doc: DocumentRow) => {
-    if (fileType === "all") return true;
-    return getFileTypeFromPath(doc.storage_path) === fileType;
-  });
-
-  return { user, documents: sortDocuments<DocumentRow>(filtered, sort), folders: folders ?? [] };
+  return { user, documents, folders: folders ?? [], totalCount };
 }
 
 export default async function Home({ searchParams }: PageProps) {
@@ -93,8 +114,49 @@ export default async function Home({ searchParams }: PageProps) {
   const environment: EnvironmentOption = ["production", "staging", "development"].includes(envParam)
     ? (envParam as EnvironmentOption)
     : "production";
+  const pageParam = typeof params?.page === "string" ? Number(params.page) : 1;
+  const page = Number.isFinite(pageParam) && pageParam > 0 ? Math.floor(pageParam) : 1;
 
-  const { user, documents, folders } = await getData(search, sort, fileType);
+  const { user, documents, folders, totalCount } = await getData(search, sort, fileType, page);
+  const totalPages = Math.max(1, Math.ceil(totalCount / DOCUMENTS_PAGE_SIZE));
+
+  const buildPageHref = (targetPage: number) => {
+    const sp = new URLSearchParams();
+    if (search) sp.set("q", search);
+    if (sort !== "date_desc") sp.set("sort", sort);
+    if (fileType !== "all") sp.set("type", fileType);
+    if (environment !== "production") sp.set("env", environment);
+    if (targetPage > 1) sp.set("page", String(targetPage));
+    const qs = sp.toString();
+    return qs ? `/?${qs}` : "/";
+  };
+
+  const paginationControls =
+    totalPages > 1 ? (
+      <nav className="flex items-center justify-between gap-3 text-xs text-stone-400" aria-label="Pagination">
+        <Link
+          href={buildPageHref(Math.max(1, page - 1))}
+          aria-disabled={page <= 1}
+          className={`focus-ring rounded-md border border-stone-700/50 px-3 py-1.5 font-medium transition hover:border-forge-500/40 hover:text-stone-200 ${
+            page <= 1 ? "pointer-events-none opacity-40" : ""
+          }`}
+        >
+          ← Previous
+        </Link>
+        <span>
+          Page {page} of {totalPages}
+        </span>
+        <Link
+          href={buildPageHref(Math.min(totalPages, page + 1))}
+          aria-disabled={page >= totalPages}
+          className={`focus-ring rounded-md border border-stone-700/50 px-3 py-1.5 font-medium transition hover:border-forge-500/40 hover:text-stone-200 ${
+            page >= totalPages ? "pointer-events-none opacity-40" : ""
+          }`}
+        >
+          Next →
+        </Link>
+      </nav>
+    ) : null;
 
   const isAuthed = Boolean(user);
   const totalStorageBytes = documents.reduce((total, document) => total + (document.file_size_bytes ?? 0), 0);
@@ -295,6 +357,7 @@ export default async function Home({ searchParams }: PageProps) {
               documents={documents}
               initialFolders={folders}
               workspaceControls={workspaceControls}
+              paginationControls={paginationControls}
             />
 
             {/* Reference Links Section */}
