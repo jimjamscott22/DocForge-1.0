@@ -17,8 +17,14 @@ import {
 } from "./documentTableTypes";
 import { EmptyBoxIcon } from "./icons";
 
+type FolderOption = {
+  id: string;
+  name: string;
+};
+
 type DocumentListPaneProps = {
   documents: DocumentRow[];
+  folders?: FolderOption[];
   selectedDocumentId: string | null;
   onSelectDocument: (id: string) => void;
   onMoveToFolder?: (ids: string[]) => void;
@@ -26,6 +32,7 @@ type DocumentListPaneProps = {
 
 export default function DocumentListPane({
   documents,
+  folders = [],
   selectedDocumentId,
   onSelectDocument,
   onMoveToFolder,
@@ -41,6 +48,11 @@ export default function DocumentListPane({
   const documentIdSet = useMemo(
     () => new Set(documents.map((d) => d.id)),
     [documents]
+  );
+
+  const folderNameById = useMemo(
+    () => new Map(folders.map((f) => [f.id, f.name])),
+    [folders]
   );
 
   const activeSelectedIds = useMemo(() => {
@@ -154,6 +166,7 @@ export default function DocumentListPane({
                 const ext = getFileExtension(doc.storage_path);
                 const type = getFileIcon(doc.storage_path);
                 const active = doc.id === selectedDocumentId;
+                const folderName = doc.folder_id ? folderNameById.get(doc.folder_id) : undefined;
                 return (
                   <li key={doc.id}>
                     <button
@@ -187,8 +200,14 @@ export default function DocumentListPane({
                         >
                           {doc.title}
                         </p>
-                        <p className="mt-0.5 text-[11px] text-stone-500">
+                        <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-stone-500">
                           {formatBytes(doc.file_size_bytes)} · {formatDate(doc.created_at)}
+                          {folderName && (
+                            <>
+                              <span aria-hidden="true">·</span>
+                              <span className="truncate text-stone-400">{folderName}</span>
+                            </>
+                          )}
                         </p>
                       </div>
                       <FileTypeIcon type={type} extension={ext || undefined} />

@@ -291,6 +291,7 @@ export default function DashboardClient({
           )}
           <DocumentListPane
             documents={filteredDocuments}
+            folders={folders}
             selectedDocumentId={activeDocumentId}
             onSelectDocument={setSelectedDocumentId}
             onMoveToFolder={handleMoveToFolder}
