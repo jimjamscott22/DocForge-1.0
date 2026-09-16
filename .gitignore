@@ -48,3 +48,4 @@ nul
 
 # Generated knowledge graph (graphify)
 graphify-out/
+.claude/settings.local.json
