@@ -39,21 +39,22 @@
       "Bash(git commit -m ' *)",
       "Bash(git -C /home/jimjamscozz22/Desktop/GitHub/repo/DocForge-1.0 add docs/REFACTORING.md)",
       "Bash(git -C /home/jimjamscozz22/Desktop/GitHub/repo/DocForge-1.0 commit -m \"docs: mark #4 #5 #6 complete, update #14 progress and changelog\")",
-      "mcp__context7__query-docs"
+      "mcp__context7__query-docs",
+      "Bash(graphify query *)"
     ]
   },
   "enabledMcpjsonServers": [
     "python-sdk",
-    "docker",
-    "memory-bank",
-    "sequential-thinking",
-    "brave-search",
-    "google-maps",
-    "deep-graph"
+    "memory-bank"
   ],
   "disabledMcpjsonServers": [
     "jupyter",
     "postgresql",
-    "opik"
+    "opik",
+    "sequential-thinking",
+    "brave-search",
+    "google-maps",
+    "deep-graph",
+    "docker"
   ]
 }
