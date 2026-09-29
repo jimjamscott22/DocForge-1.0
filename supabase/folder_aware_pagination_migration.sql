@@ -1,34 +1,9 @@
--- Add sort/file-type filtering and LIMIT/OFFSET pagination to search_documents
--- ------------------------------------------------------------
--- Problem
---   search_documents(search_query, user_id) always returned up to 50 rows,
---   ranked by relevance only, with no way to sort, filter by file type, or
---   page through results. page.tsx worked around this by fetching every
---   document and sorting/filtering in JS (see docs/REFACTORING.md #3).
---
--- Fix
---   New optional parameters (p_sort, p_file_type, p_limit, p_offset) push
---   sorting, file-type filtering (matched against storage_path, same rule
---   as web/src/lib/fileType.ts's classify()), and pagination into SQL. A
---   count(*) over() window column returns the total matching row count
---   alongside each page so the caller can compute page count without a
---   second query.
---
--- Compatibility
---   This changes the function's argument list, so `create or replace` would
---   create a second overload rather than replacing the old one — drop the
---   old 2-arg signature first. Uses `drop function if exists` so this is
---   safe to run regardless of whether rpc_auth_hardening_migration.sql has
---   already run.
---
--- Run order
---   Existing databases: AFTER folder_migration.sql and
---   rpc_auth_hardening_migration.sql (provides docforge_caller_id).
---   THEN apply folder_aware_pagination_migration.sql last to replace this
---   historical six-argument signature. Fresh installs use schema.sql only.
--- ============================================================
-
+-- Apply AFTER rpc_auth_hardening_migration.sql and search_pagination_migration.sql.
+-- Replaces the old overloads so PostgREST resolves one search signature.
+-- NULL p_folder_id means all documents; a UUID selects that folder before counting.
+begin;
 drop function if exists public.search_documents(text, uuid);
+drop function if exists public.search_documents(text, uuid, text, text, integer, integer);
 
 create or replace function public.search_documents(
   search_query text,
@@ -36,7 +11,8 @@ create or replace function public.search_documents(
   p_sort text default 'date_desc',
   p_file_type text default 'all',
   p_limit integer default 20,
-  p_offset integer default 0
+  p_offset integer default 0,
+  p_folder_id uuid default null
 )
 returns table (
   id uuid,
@@ -70,6 +46,7 @@ begin
   from public.documents d
   where d.created_by = v_uid
     and d.search_vector @@ v_query
+    and (p_folder_id is null or d.folder_id = p_folder_id)
     and (
       p_file_type = 'all'
       or (p_file_type = 'pdf' and d.storage_path ilike '%.pdf')
@@ -97,12 +74,16 @@ begin
     case when p_sort = 'size_asc' then d.file_size_bytes end asc,
     case when p_sort = 'size_desc' then d.file_size_bytes end desc,
     ts_rank(d.search_vector, v_query) desc,
-    d.created_at desc
+    d.created_at desc,
+    d.id asc
   limit v_limit
   offset v_offset;
 end;
 $$;
 
-revoke execute on function public.search_documents(text, uuid, text, text, integer, integer) from public;
-revoke execute on function public.search_documents(text, uuid, text, text, integer, integer) from anon;
-grant  execute on function public.search_documents(text, uuid, text, text, integer, integer) to authenticated, service_role;
+revoke execute on function public.search_documents(text, uuid, text, text, integer, integer, uuid) from public;
+revoke execute on function public.search_documents(text, uuid, text, text, integer, integer, uuid) from anon;
+grant  execute on function public.search_documents(text, uuid, text, text, integer, integer, uuid) to authenticated, service_role;
+
+notify pgrst, 'reload schema';
+commit;

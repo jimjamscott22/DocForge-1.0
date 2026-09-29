@@ -454,7 +454,8 @@ create or replace function public.search_documents(
   p_sort text default 'date_desc',
   p_file_type text default 'all',
   p_limit integer default 20,
-  p_offset integer default 0
+  p_offset integer default 0,
+  p_folder_id uuid default null
 )
 returns table (
   id uuid,
@@ -488,6 +489,7 @@ begin
   from public.documents d
   where d.created_by = v_uid
     and d.search_vector @@ v_query
+    and (p_folder_id is null or d.folder_id = p_folder_id)
     and (
       p_file_type = 'all'
       or (p_file_type = 'pdf' and d.storage_path ilike '%.pdf')
@@ -515,11 +517,64 @@ begin
     case when p_sort = 'size_asc' then d.file_size_bytes end asc,
     case when p_sort = 'size_desc' then d.file_size_bytes end desc,
     ts_rank(d.search_vector, v_query) desc,
-    d.created_at desc
+    d.created_at desc,
+    d.id asc
   limit v_limit
   offset v_offset;
 end;
 $$;
+
+-- Authenticated, atomic folder deletion. A failed statement rolls back the RPC.
+create or replace function public.delete_folder(p_folder_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_parent_id uuid;
+begin
+  if v_uid is null then
+    raise exception 'not_authenticated' using errcode = '28000';
+  end if;
+
+  -- Serialize deletions of this user's tree in a consistent lock order.
+  -- FOR UPDATE also blocks new FK references to folders being removed.
+  perform id from public.folders
+    where user_id = v_uid order by id for update;
+
+  select parent_id into v_parent_id from public.folders
+    where id = p_folder_id and user_id = v_uid;
+  if not found then
+    raise exception 'folder_not_found' using errcode = 'P0002';
+  end if;
+
+  -- Older schemas allow foreign-owner references. Never move into or cascade
+  -- through another user's tree.
+  if exists (
+    select 1 from public.folders
+      where id = v_parent_id and user_id <> v_uid
+  ) or exists (
+    select 1 from public.folders
+      where parent_id = p_folder_id and user_id <> v_uid
+  ) or exists (
+    select 1 from public.documents
+      where folder_id = p_folder_id and created_by <> v_uid
+  ) then
+    raise exception 'folder_ownership_conflict' using errcode = '42501';
+  end if;
+
+  update public.documents set folder_id = null
+    where folder_id = p_folder_id and created_by = v_uid;
+  update public.folders set parent_id = v_parent_id, updated_at = now()
+    where parent_id = p_folder_id and user_id = v_uid;
+  delete from public.folders where id = p_folder_id and user_id = v_uid;
+end;
+$$;
+
+revoke execute on function public.delete_folder(uuid) from public, anon;
+grant execute on function public.delete_folder(uuid) to authenticated;
 
 -- ------------------------------------------------------------
 -- Lock down EXECUTE on the SECURITY DEFINER RPCs
@@ -530,9 +585,9 @@ revoke execute on function public.docforge_caller_id(uuid) from public;
 revoke execute on function public.docforge_caller_id(uuid) from anon;
 revoke execute on function public.docforge_caller_id(uuid) from authenticated;
 
-revoke execute on function public.search_documents(text, uuid, text, text, integer, integer) from public;
-revoke execute on function public.search_documents(text, uuid, text, text, integer, integer) from anon;
-grant  execute on function public.search_documents(text, uuid, text, text, integer, integer) to authenticated, service_role;
+revoke execute on function public.search_documents(text, uuid, text, text, integer, integer, uuid) from public;
+revoke execute on function public.search_documents(text, uuid, text, text, integer, integer, uuid) from anon;
+grant  execute on function public.search_documents(text, uuid, text, text, integer, integer, uuid) to authenticated, service_role;
 revoke execute on function public.upsert_document_with_version(uuid, text, text, bigint, text, uuid, text) from public;
 revoke execute on function public.upsert_document_with_version(uuid, text, text, bigint, text, uuid, text) from anon;
 grant  execute on function public.upsert_document_with_version(uuid, text, text, bigint, text, uuid, text) to authenticated, service_role;

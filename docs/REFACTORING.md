@@ -3,6 +3,10 @@
 Working document for refactors identified during the full-app review (2026-06-17).
 Status legend: ⬜ todo · 🔄 in progress · ✅ done · ⏭️ deferred
 
+This is the source of truth for implementation status. ✅ means implemented in
+the repository and locally verified; hosted database deployment is tracked
+separately and is not implied by that mark.
+
 ---
 
 ## High impact
@@ -38,6 +42,62 @@ routes use the structured `errorResponse`/`AppError` system. Normalize v1 onto t
   rail's "N root · M MB" line) are now computed from just the current page's documents, since
   the full set is no longer fetched — they read as page-scoped rather than vault-wide totals.
   Left as-is since fixing it needs a separate lightweight aggregate query, out of scope here.
+
+### 15. Folder-aware pagination — ✅
+- Folder selection is URL state (`folder=<uuid>`), restored on reload/back/forward.
+- Switching folders preserves search, sort, type, and environment, and resets to page one.
+- List queries and `search_documents` apply folder filtering before counting and paging.
+- Pagination links and the search form preserve the selected folder.
+- Stable ID tie-breaking avoids unstable page boundaries for equal sort values.
+- Stale/out-of-range pages recover to the last available page; database errors surface
+  through the page error boundary rather than masquerading as an empty vault.
+- Regression coverage: multi-page folders, folder-scoped search, all-documents mode,
+  empty/shrunken results, errors, and navigation URL preservation.
+- Browser verification with an isolated mock backend: switching folders from page two,
+  20/5-row pages, search preservation, reload/back/forward, and selected-folder deletion.
+  Desktop (1440×1000) and mobile (390×844) rendered without runtime/console errors.
+- **Deployment:** existing databases require `search_pagination_migration.sql`, then
+  `folder_aware_pagination_migration.sql`, after RPC auth hardening. Hosted application
+  and database smoke testing remains pending; no live migrations were applied here.
+
+### 16. Atomic, ownership-safe folder deletion — ✅
+- The delete route calls one `delete_folder` RPC; document moves, child-folder
+  reparenting, and deletion commit together or roll back together.
+- Database identity comes from `auth.uid()`; missing/foreign-owned folders return 404.
+- User folder rows lock in deterministic order. Foreign-owner references are rejected
+  before mutation so legacy cross-owner references cannot be followed by cascade.
+- Unauthenticated callers and the `anon` role cannot execute deletion.
+- Database regression coverage verifies an injected failure after both updates,
+  ownership rejection, execution grants, missing folders, child/grandchild preservation,
+  and root-folder deletion. Tests run in embedded PostgreSQL with Supabase auth/storage
+  stubs against both fresh schema and the existing-database migration sequence.
+- **Deployment:** apply `safe_folder_deletion_migration.sql` to existing databases.
+  Hosted deployment and concurrent-request smoke testing remain pending.
+
+### 17. Migration instructions and completion status — ✅
+- README upgrade instructions include pagination, folder-aware search, and safe deletion
+  in dependency order; fresh installs use only `schema.sql`.
+- Historical search migrations must precede the new folder-aware migration to avoid
+  recreating obsolete overloads. Upgrade and repeated application were locally tested.
+- The README links to this tracker instead of the missing `PROJECT_STATUS.md`.
+- Database regression suite: `supabase/tests/folder_workflows.sql`. Against a disposable
+  Supabase test database, run the command below. It requires a privileged test connection and rolls
+  back its fixtures and injected trigger. Never run test fixtures against production.
+
+```bash
+psql "$DOCFORGE_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/folder_workflows.sql
+```
+
+## Remaining work from the 2026-09-28 review
+
+- ⬜ Vault-wide storage totals and folder counts (currently page-scoped).
+- ⬜ PDF conversion for text/Markdown; the UI currently offers an unsupported action.
+- ⬜ Existing lint findings: React effect/state issues and version-history dependencies.
+- ⬜ Rate limiting for uploads, API-key creation, and public API routes.
+- ⬜ Audit logging for key, deletion, move, and export activity.
+- ⬜ Public API pagination.
+- ⬜ Broader integration/end-to-end coverage and keyboard/touch folder accessibility.
+- ⬜ Share links, tagging UI, OCR/Word text extraction, and gallery improvements.
 
 ---
 
@@ -94,13 +154,17 @@ Only `uploadMime.test.ts`. Pure functions (`extractTextFromHtml`, `sortDocuments
 `isBlockedHostname`, `formatBytes`, file-type helpers) are easily testable.
 - **Plan:** add tests alongside each extracted helper; widen the `test` npm script to all `*.test.ts`.
 - `sortDocuments` extracted to `src/lib/sortDocuments.ts`, `isBlockedHostname` extracted to
-  `src/lib/urlSafety.ts`, both now unit-tested alongside `extractTextFromHtml`. 56 tests total
-  across 8 files.
+  `src/lib/urlSafety.ts`, both now unit-tested alongside `extractTextFromHtml`.
+  With the folder pagination regressions, the current suite has 65 tests across 8 files.
 
 ---
 
 ## Changelog
 
+- _2026-09-28_ — Completed #15–17 in the repository: folder-aware pagination,
+  atomic folder deletion, and migration/status documentation. Added TypeScript
+  regressions and a rollback-only PostgreSQL suite; fresh and upgrade definitions
+  verified locally. Hosted migrations and authenticated live smoke tests pending.
 - _2026-06-17_ — Review completed; tracker created. Starting with the safe pure-refactor slice:
   #6 (storage), #4 (format), #5 (fileType), #1 (requireUser), #14 (tests).
 - _2026-06-21_ — Completed #1 for session API routes: all non-v1 routes now use

@@ -3,6 +3,16 @@ import type { SortOption } from "./sortDocuments";
 
 export const DOCUMENTS_PAGE_SIZE = 20;
 
+/** Folder navigation keeps the current query but starts a new pagination scope. */
+export function buildFolderHref(params: URLSearchParams, folderId: string | null): string {
+  const next = new URLSearchParams(params);
+  next.delete("page");
+  if (folderId) next.set("folder", folderId);
+  else next.delete("folder");
+  const query = next.toString();
+  return query ? `/?${query}` : "/";
+}
+
 export const SORT_COLUMNS: Record<string, string> = {
   date: "created_at",
   name: "title",

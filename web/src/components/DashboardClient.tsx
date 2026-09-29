@@ -9,7 +9,8 @@ import AnalyticsDashboard from "./AnalyticsDashboard";
 import ApiKeyManager from "./ApiKeyManager";
 import UploadDrawer from "./UploadDrawer";
 import { useToast } from "./ToastProvider";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { buildFolderHref } from "@/lib/documentQuery";
 import { DocumentRow } from "./documentTableTypes";
 import { ChartBarIcon, ChevronDownIcon, KeyIcon } from "./icons";
 
@@ -24,6 +25,7 @@ type WorkspacePanel = "analytics" | "apiKeys" | null;
 type DashboardClientProps = {
   documents: DocumentRow[];
   initialFolders?: FolderOption[];
+  selectedFolderId?: string | null;
   workspaceControls?: ReactNode;
   paginationControls?: ReactNode;
 };
@@ -31,13 +33,17 @@ type DashboardClientProps = {
 export default function DashboardClient({
   documents,
   initialFolders = [],
+  selectedFolderId = null,
   workspaceControls,
   paginationControls,
 }: DashboardClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showSuccess, showError } = useToast();
 
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const selectFolder = (folderId: string | null) => {
+    router.push(buildFolderHref(new URLSearchParams(searchParams.toString()), folderId));
+  };
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [workspacePanel, setWorkspacePanel] = useState<WorkspacePanel>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -94,8 +100,8 @@ export default function DashboardClient({
       }
       showSuccess(`Folder "${folder.name}" deleted`);
       handleFolderRefresh();
-      if (selectedFolderId === folder.id) setSelectedFolderId(null);
-      router.refresh();
+      if (selectedFolderId === folder.id) selectFolder(null);
+      else router.refresh();
     } catch {
       showError("A network error occurred");
     }
@@ -133,15 +139,10 @@ export default function DashboardClient({
     documentFolderMap[doc.id] = doc.folder_id ?? null;
   }
 
-  const filteredDocuments =
-    selectedFolderId === null
-      ? documents
-      : documents.filter((d) => d.folder_id === selectedFolderId);
-
   const activeDocumentId =
-    selectedDocumentId && filteredDocuments.some((d) => d.id === selectedDocumentId)
+    selectedDocumentId && documents.some((d) => d.id === selectedDocumentId)
       ? selectedDocumentId
-      : (filteredDocuments[0]?.id ?? null);
+      : (documents[0]?.id ?? null);
 
   const selectedFolderName = folders.find((f) => f.id === selectedFolderId)?.name ?? null;
   const rootDocumentCount = documents.filter((document) => !document.folder_id).length;
@@ -165,7 +166,7 @@ export default function DashboardClient({
         <div className="rounded-lg border border-stone-700/40 bg-stone-950/30 p-3 backdrop-blur-sm">
           <FolderTree
             selectedFolderId={selectedFolderId}
-            onSelectFolder={setSelectedFolderId}
+            onSelectFolder={selectFolder}
             onCreateFolder={handleCreateFolder}
             onRenameFolder={handleRenameFolder}
             onDeleteFolder={handleDeleteFolder}
@@ -230,7 +231,7 @@ export default function DashboardClient({
           >
             <button
               type="button"
-              onClick={() => setSelectedFolderId(null)}
+              onClick={() => selectFolder(null)}
               className={`focus-ring rounded-md px-1.5 py-0.5 transition hover:text-stone-200 ${
                 selectedFolderId === null ? "font-medium text-stone-100" : ""
               }`}
@@ -292,7 +293,7 @@ export default function DashboardClient({
             </div>
           )}
           <DocumentListPane
-            documents={filteredDocuments}
+            documents={documents}
             folders={folders}
             selectedDocumentId={activeDocumentId}
             onSelectDocument={setSelectedDocumentId}

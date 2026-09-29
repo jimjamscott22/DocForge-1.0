@@ -9,6 +9,7 @@ DocForge is a full-stack document vault for developers and technical teams. It c
 - Web-page imports from public HTTP and HTTPS URLs
 - PostgreSQL full-text search over document titles and extracted content
 - Nested folders, drag-and-drop moves, sorting, filtering, bulk open, and bulk delete
+- Folder-aware pagination with search and file-type filters applied before paging
 - Text, Markdown, and in-app PDF previews
 - Document version history with restoration
 - PDF and Markdown-compatible exports
@@ -93,12 +94,19 @@ For an existing DocForge database, back it up and apply only the migrations that
 4. [`supabase/versioning_migration.sql`](supabase/versioning_migration.sql)
 5. [`supabase/search_folder_context_migration.sql`](supabase/search_folder_context_migration.sql)
 6. [`supabase/rpc_auth_hardening_migration.sql`](supabase/rpc_auth_hardening_migration.sql)
+7. [`supabase/search_pagination_migration.sql`](supabase/search_pagination_migration.sql)
+8. [`supabase/folder_aware_pagination_migration.sql`](supabase/folder_aware_pagination_migration.sql)
+9. [`supabase/safe_folder_deletion_migration.sql`](supabase/safe_folder_deletion_migration.sql)
 
 The search-folder migration expects folder support to exist first. Keep deployed environments synchronized with the migration files in this repository.
 
 Step 6 is required for every existing database, including one already on the latest base schema. The `SECURITY DEFINER` search, upsert, and restore RPCs previously trusted a user id passed in by the caller instead of `auth.uid()`, and kept Postgres' default `EXECUTE TO PUBLIC` grant — which includes the `anon` role. Any holder of the public anon key could call them with another account's uuid and read or modify that account's documents. The migration moves identity to `auth.uid()`, raises `user_mismatch` on a mismatched argument, and restricts `EXECUTE` to `authenticated` and `service_role`. Function signatures are unchanged, so no application code changes are needed.
 
-A fresh `schema.sql` run already includes the hardened definitions and does not need step 6.
+A fresh `schema.sql` run already includes all current definitions and does not need steps 6–9.
+
+For an existing database, step 7 requires step 6's caller-identity helper. Step 8 replaces the old search overloads with one folder-aware signature; step 9 adds the atomic `delete_folder` RPC. These migrations are rerunnable. Run any missing prerequisites, then steps 8 and 9 **before starting this application version**. Do not rerun the older search migrations after step 8: they recreate obsolete function overloads. If that happens, rerun step 8 last.
+
+The two new migrations notify PostgREST to reload its schema cache. After deployment, verify that selecting a folder with more than 20 documents pages through only that folder, search stays within the selected folder, and deleting a folder moves its documents to root while preserving its child folders. Repository checks do not confirm that these migrations have been applied to your hosted project.
 
 ### 4. Configure OAuth
 
@@ -257,17 +265,18 @@ Common status codes:
 ## Roadmap
 
 - Rate limiting for uploads, API-key creation, and public API routes
-- Transactional handling for multi-step destructive folder operations
 - Audit logging for key, delete, move, and export activity
 - Expanded unit coverage plus integration and end-to-end tests
 - Improved dialog accessibility and keyboard-friendly drag-and-drop workflows
-- Pagination or virtualization for large document vaults
+- Vault-wide storage and folder-count aggregates, public API pagination, and virtualization if needed
 - Share links, tagging UI, image gallery improvements, and OCR
+
+Completed work and remaining implementation gaps are tracked in [the source-of-truth status tracker](docs/REFACTORING.md). Folder-aware dashboard pagination and transactional folder deletion are implemented; existing deployments need the migrations above.
 
 ## Project Documentation
 
 - [Contributor and agent guidance](AGENTS.md)
-- [Project status](docs/PROJECT_STATUS.md)
+- [Project status and refactoring tracker](docs/REFACTORING.md)
 - [Refactoring notes](docs/REFACTORING.md)
 - [Web application guide](web/README.md)
 

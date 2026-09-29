@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabaseServerClient";
 import AuthButtons from "@/components/AuthButtons";
 import DashboardClient from "@/components/DashboardClient";
@@ -6,18 +7,10 @@ import ReferenceLinksSidebar from "@/components/ReferenceLinksSidebar";
 import type { FileFilterOption } from "@/lib/fileType";
 import { AnvilIcon, CloudIcon, InfoCircleIcon, SearchIcon, ShieldCheckIcon } from "@/components/icons";
 import type { SortOption } from "@/lib/sortDocuments";
-import { DOCUMENTS_PAGE_SIZE, applyFileTypeFilter, toOrderArgs } from "@/lib/documentQuery";
+import { DOCUMENTS_PAGE_SIZE } from "@/lib/documentQuery";
+import { loadDocumentPage, type DocumentRow } from "@/lib/documentData";
 
 export const dynamic = "force-dynamic";
-
-type DocumentRow = {
-  id: string;
-  title: string;
-  storage_path: string;
-  file_size_bytes: number | null;
-  created_at: string;
-  folder_id?: string | null;
-};
 
 type FolderRow = {
   id: string;
@@ -31,7 +24,7 @@ type PageProps = {
 
 type EnvironmentOption = "production" | "staging" | "development";
 
-async function getData(search: string, sort: SortOption, fileType: FileFilterOption, page: number) {
+async function getData(search: string, sort: SortOption, fileType: FileFilterOption, page: number, folderId: string | null) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -43,7 +36,7 @@ async function getData(search: string, sort: SortOption, fileType: FileFilterOpt
   }
 
   if (!user) {
-    return { user: null, documents: [] as DocumentRow[], folders: [] as FolderRow[], totalCount: 0 };
+    return { user: null, documents: [] as DocumentRow[], folders: [] as FolderRow[], totalCount: 0, page: 1 };
   }
 
   const { data: folders, error: foldersError } = await supabase
@@ -53,49 +46,11 @@ async function getData(search: string, sort: SortOption, fileType: FileFilterOpt
     .order("name");
 
   if (foldersError) {
-    console.error("Failed to load folders", foldersError);
+    throw new Error(`Failed to load folders: ${foldersError.message}`);
   }
-
-  const offset = (page - 1) * DOCUMENTS_PAGE_SIZE;
-  let documents: DocumentRow[] = [];
-  let totalCount = 0;
-  let error: { message: string } | null = null;
-
-  if (search) {
-    const { data, error: rpcError } = await supabase.rpc("search_documents", {
-      search_query: search,
-      user_id: user.id,
-      p_sort: sort,
-      p_file_type: fileType,
-      p_limit: DOCUMENTS_PAGE_SIZE,
-      p_offset: offset,
-    });
-    error = rpcError;
-    const rows = (data ?? []) as (DocumentRow & { total_count: number })[];
-    documents = rows;
-    totalCount = rows[0]?.total_count ?? 0;
-  } else {
-    const { column, ascending } = toOrderArgs(sort);
-    const query = applyFileTypeFilter(
-      supabase
-        .from("documents")
-        .select("id,title,storage_path,file_size_bytes,created_at,folder_id", { count: "exact" })
-        .eq("created_by", user.id),
-      fileType
-    );
-    const { data, error: queryError, count } = await query
-      .order(column, { ascending })
-      .range(offset, offset + DOCUMENTS_PAGE_SIZE - 1);
-    error = queryError;
-    documents = data ?? [];
-    totalCount = count ?? 0;
-  }
-
-  if (error) {
-    console.error(search ? "Failed to search documents" : "Failed to load documents", error);
-  }
-
-  return { user, documents, folders: folders ?? [], totalCount };
+  if (folderId && !folders?.some((folder) => folder.id === folderId)) notFound();
+  const result = await loadDocumentPage(supabase, user.id, { search, sort, fileType, page, folderId });
+  return { user, folders: folders ?? [], ...result };
 }
 
 export default async function Home({ searchParams }: PageProps) {
@@ -115,9 +70,10 @@ export default async function Home({ searchParams }: PageProps) {
     ? (envParam as EnvironmentOption)
     : "production";
   const pageParam = typeof params?.page === "string" ? Number(params.page) : 1;
-  const page = Number.isFinite(pageParam) && pageParam > 0 ? Math.floor(pageParam) : 1;
+  const requestedPage = Number.isSafeInteger(pageParam) && pageParam > 0 && pageParam <= Math.floor(Number.MAX_SAFE_INTEGER / DOCUMENTS_PAGE_SIZE) ? pageParam : 1;
+  const folderId = typeof params?.folder === "string" && params.folder ? params.folder : null;
 
-  const { user, documents, folders, totalCount } = await getData(search, sort, fileType, page);
+  const { user, documents, folders, totalCount, page } = await getData(search, sort, fileType, requestedPage, folderId);
   const totalPages = Math.max(1, Math.ceil(totalCount / DOCUMENTS_PAGE_SIZE));
 
   const buildPageHref = (targetPage: number) => {
@@ -126,6 +82,7 @@ export default async function Home({ searchParams }: PageProps) {
     if (sort !== "date_desc") sp.set("sort", sort);
     if (fileType !== "all") sp.set("type", fileType);
     if (environment !== "production") sp.set("env", environment);
+    if (folderId) sp.set("folder", folderId);
     if (targetPage > 1) sp.set("page", String(targetPage));
     const qs = sp.toString();
     return qs ? `/?${qs}` : "/";
@@ -133,7 +90,7 @@ export default async function Home({ searchParams }: PageProps) {
 
   const paginationControls =
     totalPages > 1 ? (
-      <nav className="flex items-center justify-between gap-3 text-xs text-stone-400" aria-label="Pagination">
+      <nav key="pagination" className="flex items-center justify-between gap-3 text-xs text-stone-400" aria-label="Pagination">
         <Link
           href={buildPageHref(Math.max(1, page - 1))}
           aria-disabled={page <= 1}
@@ -168,7 +125,7 @@ export default async function Home({ searchParams }: PageProps) {
     totalStorageMb,
   ];
   const workspaceControls = (
-    <div className="flex flex-col gap-3">
+    <div key="workspace-controls" className="flex flex-col gap-3">
       <div className="flex flex-wrap gap-2">
         {statusChips.map((chip) => (
           <span
@@ -180,6 +137,7 @@ export default async function Home({ searchParams }: PageProps) {
         ))}
       </div>
       <form className="grid gap-3 xl:grid-cols-[minmax(14rem,1fr)_minmax(8rem,auto)_minmax(8rem,auto)_minmax(8rem,auto)_auto]" method="get">
+        {folderId && <input type="hidden" name="folder" value={folderId} />}
         <div className="relative min-w-0">
           <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
           <input
@@ -356,6 +314,7 @@ export default async function Home({ searchParams }: PageProps) {
             <DashboardClient
               documents={documents}
               initialFolders={folders}
+              selectedFolderId={folderId}
               workspaceControls={workspaceControls}
               paginationControls={paginationControls}
             />
