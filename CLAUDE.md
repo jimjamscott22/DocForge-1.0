@@ -34,6 +34,8 @@ order-independent relative to the other migration files below — run it wheneve
 
 **Existing databases must also run `supabase/rpc_auth_hardening_migration.sql`.** The `SECURITY DEFINER` RPCs (`search_documents`, `upsert_document_with_version`, `restore_document_version`) originally scoped ownership to a caller-supplied uuid argument rather than `auth.uid()`, and carried Postgres' default `EXECUTE TO PUBLIC` — which reaches the `anon` role, so anyone holding the public anon key could call them against another user's uuid. `schema.sql` and the individual migrations now contain the hardened definitions, so a fresh install is safe without it; the standalone migration exists to fix databases deployed before the change. Run it last: the other files use `CREATE OR REPLACE`, so applying any of them afterwards is harmless now, but the ordering rule still holds if you restore an older copy of a file.
 
+**If the Security Advisor flags `public.rls_auto_enable()`, run `supabase/rls_auto_enable_revoke_migration.sql`.** That function is created by Supabase's "Automatically enable RLS" project setting, not by `schema.sql`, and ships with `EXECUTE TO PUBLIC`. The migration revokes it from `anon`/`authenticated` and is a no-op if the function doesn't exist.
+
 ## Architecture
 
 **DocForge** is a document vault — Next.js 16 (App Router) frontend + Supabase (PostgreSQL, Auth, Storage) backend.
