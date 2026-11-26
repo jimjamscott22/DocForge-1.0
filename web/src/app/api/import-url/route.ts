@@ -12,7 +12,7 @@ import { errorResponse, handleRouteError } from "@/lib/apiResponse";
 import { requireUser } from "@/lib/routeAuth";
 import { BUCKET_NAME } from "@/lib/storage";
 import { extractTextFromHtml } from "@/lib/textExtractor";
-import { isBlockedHostname } from "@/lib/urlSafety";
+import { fetchPublicHtml, isBlockedHostname } from "@/lib/urlSafety";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,32 +57,27 @@ export async function POST(request: Request) {
         ? rawTitle.trim()
         : parsed.hostname + parsed.pathname;
 
-    // Fetch the remote page with a timeout
+    // Bound the entire fetch, including redirects and the response body.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
     let html: string;
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15_000);
-      const res = await fetch(parsed.toString(), {
-        signal: controller.signal,
-        headers: {
-          "User-Agent": "DocForge/1.0 (document importer)",
-          Accept: "text/html,application/xhtml+xml,*/*;q=0.8",
-        },
-      });
-      clearTimeout(timeout);
-
-      if (!res.ok) {
+      const res = await fetchPublicHtml(parsed, controller.signal);
+      const status = res.statusCode ?? 0;
+      if (status < 200 || status >= 300) {
+        res.destroy();
         return errorResponse(
           new AppError({
             code: ErrorCode.NETWORK_ERROR,
             severity: ErrorSeverity.MEDIUM,
-            userMessage: `Could not fetch the URL (HTTP ${res.status})`,
+            userMessage: `Could not fetch the URL (HTTP ${status})`,
           })
         );
       }
 
-      const contentType = res.headers.get("content-type") ?? "";
+      const contentType = res.headers["content-type"] ?? "";
       if (!contentType.includes("text/html") && !contentType.includes("application/xhtml")) {
+        res.destroy();
         return errorResponse(
           new ValidationError(
             "The URL does not point to an HTML page. Only HTML documentation pages can be imported."
@@ -90,41 +85,17 @@ export async function POST(request: Request) {
         );
       }
 
-      const reader = res.body?.getReader();
-      if (!reader) throw new Error("No response body");
-
-      let hitSizeLimit = false;
-      const chunks: Uint8Array[] = [];
+      const chunks: Buffer[] = [];
       let totalBytes = 0;
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          totalBytes += value.length;
-          if (totalBytes > MAX_HTML_BYTES) {
-            hitSizeLimit = true;
-            break;
-          }
-          chunks.push(value);
-        }
+      for await (const chunk of res) {
+        const bounded = (chunk as Buffer).subarray(0, MAX_HTML_BYTES - totalBytes);
+        chunks.push(bounded);
+        totalBytes += bounded.length;
+        if (totalBytes === MAX_HTML_BYTES) break;
       }
-      // Only cancel the reader when we stopped early due to the size cap;
-      // if the stream finished naturally (done=true) it is already closed.
-      if (hitSizeLimit) {
-        reader.cancel();
-      }
-
-      const combined = new Uint8Array(totalBytes > MAX_HTML_BYTES ? MAX_HTML_BYTES : totalBytes);
-      let offset = 0;
-      for (const chunk of chunks) {
-        const copied = Math.min(chunk.length, combined.length - offset);
-        combined.set(chunk.subarray(0, copied), offset);
-        offset += copied;
-        if (offset >= combined.length) break;
-      }
-      html = new TextDecoder("utf-8").decode(combined);
+      html = Buffer.concat(chunks, totalBytes).toString("utf8");
     } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
+      if (controller.signal.aborted) {
         return errorResponse(
           new AppError({
             code: ErrorCode.NETWORK_ERROR,
@@ -141,6 +112,8 @@ export async function POST(request: Request) {
           userMessage: "Could not reach the URL. Check it is publicly accessible.",
         })
       );
+    } finally {
+      clearTimeout(timeout);
     }
 
     // Extract readable text from the HTML
